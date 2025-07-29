@@ -1,61 +1,53 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.py[cod]
+*$py.class
 *.so
-.pytest_cache/
-.coverage
-htmlcov/
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
 # Virtual Environment
-backend/venv/
-backend/env/
-.venv/
-.env/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
-backend/mulakat.db
 
 # Environment variables
 .env
 .env.local
-.env.production
-.env.development
-*.env
+.env.development.local
+.env.test.local
+.env.production.local
 
-# API Keys and Secrets
-.env
-.env.local
-.env.production
-.env.development
-secrets.json
-config.json
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Logs
-*.log
-logs/
-backend/logs/
-
-# Node.js
-frontend/node_modules/
-frontend/dist/
-frontend/build/
-frontend/.next/
-frontend/.nuxt/
-frontend/.cache/
-
-# Package manager
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -64,26 +56,31 @@ pnpm-debug.log*
 ehthumbs.db
 Thumbs.db
 
-# IDE/Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# Logs
+logs/
+*.log
 
 # Temporary files
 *.tmp
 *.temp
-.tmp/
+temp/
+tmp/
+
+# API Keys (güvenlik için)
+api_keys.txt
+secrets.json
 
 # Backup files
 *.bak
-*.backup
-
-# Ollama (no longer used)
-ollama/
-.ollama/
-
-# Colab specific
-.ipynb_checkpoints/
-colab_setup.py 
+*.backup 
