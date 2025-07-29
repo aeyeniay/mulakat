@@ -86,7 +86,18 @@ function Step4({ contractId, onNext, onPrevious }) {
                              'Pratik Uygulama'} Soruları</h4>
                         {Array.isArray(questionList) && questionList.map((q, qIndex) => (
                             <div key={qIndex} className="question-item">
-                                <p className="question-text">{q.question}</p>
+                                <p className="question-text">
+                                    <span className="question-number">{qIndex + 1}.</span> {q.question}
+                                </p>
+                                {q.expected_answer && (
+                                    <div className="expected-answer">
+                                        <h5>Beklenen Cevap:</h5>
+                                        <div 
+                                            className="answer-content"
+                                            dangerouslySetInnerHTML={{ __html: q.expected_answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -115,7 +126,7 @@ function Step4({ contractId, onNext, onPrevious }) {
                         disabled={processing}
                         className="generate-btn"
                     >
-                        {processing ? 'Sorular Üretiliyor...' : 'Soruları Üret'}
+                        {processing ? 'Sorular ve Cevaplar Üretiliyor...' : 'Soruları ve Cevapları Üret'}
                     </button>
                     
                     {processing && (

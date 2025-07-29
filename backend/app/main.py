@@ -3,6 +3,7 @@ FastAPI backend uygulaması
 """
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 import json
@@ -1088,9 +1089,9 @@ async def generate_word_document(
     request_data: Dict[str, Any],
     db: Session = Depends(get_db)
 ):
-    """Üretilen soruları Word dosyası olarak indir"""
+    """Üretilen soruları ayrı Word dosyaları olarak ZIP içinde indir"""
     try:
-        logger.info(f"Word dosyası oluşturma başlatıldı. Request data: {request_data}")
+        logger.info(f"Word dosyaları oluşturma başlatıldı. Request data: {request_data}")
         contract_id = request_data.get("contract_id")
         
         if not contract_id:
@@ -1105,92 +1106,142 @@ async def generate_word_document(
         
         logger.info(f"Contract bulundu: {contract.title}")
         
-        # Rolleri ve soruları al
+        # Rolleri al
         roles = db.query(Role).filter(Role.contract_id == contract_id).all()
         logger.info(f"Roller bulundu: {len(roles)} adet")
         
-        # Word dosyası oluştur
-        doc = Document()
-        logger.info("Word dosyası oluşturuldu")
+        # ZIP dosyası oluştur
+        import zipfile
+        import io
         
-        # Başlık
-        title = doc.add_heading('MÜLAKAT SORULARI', 0)
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        zip_buffer = io.BytesIO()
         
-        # İlan bilgileri
-        doc.add_heading('İlan Bilgileri', level=1)
-        doc.add_paragraph(f'İlan Adı: {contract.title}')
-        doc.add_paragraph(f'Oluşturulma Tarihi: {contract.created_at.strftime("%d.%m.%Y") if contract.created_at else "Belirtilmemiş"}')
-        
-        # Toplam pozisyon sayısını hesapla
-        total_positions = sum(role.position_count for role in roles)
-        doc.add_paragraph(f'Toplam Pozisyon Sayısı: {total_positions}')
-        
-        doc.add_paragraph()  # Boşluk
-        
-        # Her rol için sorular
-        for role in roles:
-            logger.info(f"Rol işleniyor: {role.name}")
-            # Rol başlığı - istediğiniz formatta
-            role_title = f"{role.name} (Aylık brüt sözleşme ücret tavanının {role.salary_multiplier} katına kadar)"
-            doc.add_heading(role_title, level=2)
-            
-            # Bu role ait soruları al
-            questions = db.query(Question).filter(
-                Question.role_id == role.id,
-                Question.contract_id == contract_id
-            ).all()
-            logger.info(f"Rol {role.name} için {len(questions)} soru bulundu")
-            
-            # Soruları kategorilere göre grupla
-            questions_by_type = {}
-            for q in questions:
-                if q.question_type not in questions_by_type:
-                    questions_by_type[q.question_type] = []
-                questions_by_type[q.question_type].append(q)
-            logger.info(f"Soru kategorileri: {list(questions_by_type.keys())}")
-            
-            # Her soru tipi için
-            type_names = {
-                'professional_experience': 'Mesleki Deneyim Soruları',
-                'theoretical_knowledge': 'Teorik Bilgi Soruları',
-                'practical_application': 'Pratik Uygulama Soruları'
-            }
-            
-            for q_type, q_list in questions_by_type.items():
-                if q_list:
-                    doc.add_heading(type_names.get(q_type, q_type), level=3)
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # Her rol için dosyaları oluştur
+            for role in roles:
+                logger.info(f"Rol işleniyor: {role.name}")
+                
+                # Bu role ait soruları al
+                questions = db.query(Question).filter(
+                    Question.role_id == role.id,
+                    Question.contract_id == contract_id
+                ).all()
+                logger.info(f"Rol {role.name} için {len(questions)} soru bulundu")
+                
+                # Soruları türlerine göre grupla
+                questions_by_type = {}
+                for q in questions:
+                    if q.question_type not in questions_by_type:
+                        questions_by_type[q.question_type] = []
+                    questions_by_type[q.question_type].append(q)
+                
+                # Tür isimleri
+                type_names = {
+                    'professional_experience': 'Mesleki Deneyim Soruları',
+                    'theoretical_knowledge': 'Teorik Bilgi Soruları',
+                    'practical_application': 'Pratik Uygulama Soruları'
+                }
+                
+                # Her aday için soru dosyası oluştur
+                max_questions_per_type = max(len(q_list) for q_list in questions_by_type.values()) if questions_by_type else 0
+                logger.info(f"Maksimum soru sayısı: {max_questions_per_type}")
+                
+                for candidate_num in range(1, max_questions_per_type + 1):
+                    logger.info(f"Aday {candidate_num} için dosyalar oluşturuluyor...")
                     
-                    for i, question in enumerate(q_list, 1):
-                        # Soru numarası ve metni
-                        p = doc.add_paragraph()
-                        p.add_run(f'{i}. ').bold = True
-                        p.add_run(question.question_text)
-                        
-                        doc.add_paragraph()  # Sorular arası boşluk
-            
-            doc.add_paragraph()  # Roller arası boşluk
+                    # Soru dosyası (S) - Sadece sorular
+                    doc_s = Document()
+                    title_s = doc_s.add_heading('MÜLAKAT SORULARI', 0)
+                    title_s.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    
+                    # Contract bilgileri
+                    doc_s.add_heading('İlan Bilgileri', level=1)
+                    doc_s.add_paragraph(f'İlan Adı: {contract.title}')
+                    doc_s.add_paragraph(f'Oluşturulma Tarihi: {contract.created_at.strftime("%d.%m.%Y") if contract.created_at else "Belirtilmemiş"}')
+                    doc_s.add_paragraph(f'Pozisyon: {role.name} ({role.salary_multiplier}x)')
+                    doc_s.add_paragraph(f'Aday No: {candidate_num}')
+                    doc_s.add_paragraph()
+                    
+                    # Bu aday için soruları ekle
+                    role_title = f"{role.name} (Aylık brüt sözleşme ücret tavanının {role.salary_multiplier} katına kadar)"
+                    doc_s.add_heading(role_title, level=2)
+                    
+                    for q_type, q_list in questions_by_type.items():
+                        if len(q_list) >= candidate_num:
+                            doc_s.add_heading(type_names.get(q_type, q_type), level=3)
+                            question = q_list[candidate_num - 1]  # 0-indexed
+                            p = doc_s.add_paragraph()
+                            p.add_run(f'1. ').bold = True
+                            p.add_run(question.question_text)
+                            doc_s.add_paragraph()
+                    
+                    # Türkçe karakterleri temizle
+                    safe_role_name = role.name.replace("Ş", "S").replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O").replace("Ü", "U").replace("ş", "s").replace("ç", "c").replace("ğ", "g").replace("ı", "i").replace("ö", "o").replace("ü", "u")
+                    
+                    # Soru dosyasını ZIP'e ekle
+                    s_filename = f"{safe_role_name} {role.salary_multiplier}x S{candidate_num}.docx"
+                    s_buffer = io.BytesIO()
+                    doc_s.save(s_buffer)
+                    s_buffer.seek(0)
+                    zip_file.writestr(s_filename, s_buffer.getvalue())
+                    logger.info(f"Soru dosyası eklendi: {s_filename}")
+                    
+                    # Cevap dosyası (C) - Sorular ve cevaplar
+                    doc_c = Document()
+                    title_c = doc_c.add_heading('MÜLAKAT SORULARI VE CEVAPLARI', 0)
+                    title_c.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    
+                    # Contract bilgileri
+                    doc_c.add_heading('İlan Bilgileri', level=1)
+                    doc_c.add_paragraph(f'İlan Adı: {contract.title}')
+                    doc_c.add_paragraph(f'Oluşturulma Tarihi: {contract.created_at.strftime("%d.%m.%Y") if contract.created_at else "Belirtilmemiş"}')
+                    doc_c.add_paragraph(f'Pozisyon: {role.name} ({role.salary_multiplier}x)')
+                    doc_c.add_paragraph(f'Aday No: {candidate_num}')
+                    doc_c.add_paragraph()
+                    
+                    # Bu aday için soruları ve cevapları ekle
+                    doc_c.add_heading(role_title, level=2)
+                    
+                    for q_type, q_list in questions_by_type.items():
+                        if len(q_list) >= candidate_num:
+                            doc_c.add_heading(type_names.get(q_type, q_type), level=3)
+                            question = q_list[candidate_num - 1]  # 0-indexed
+                            p = doc_c.add_paragraph()
+                            p.add_run(f'1. ').bold = True
+                            p.add_run(question.question_text)
+                            if question.expected_answer:
+                                answer_para = doc_c.add_paragraph()
+                                answer_para.add_run('Beklenen Cevap: ').bold = True
+                                answer_para.add_run(question.expected_answer)
+                            doc_c.add_paragraph()
+                    
+                    # Cevap dosyasını ZIP'e ekle
+                    c_filename = f"{safe_role_name} {role.salary_multiplier}x C{candidate_num}.docx"
+                    c_buffer = io.BytesIO()
+                    doc_c.save(c_buffer)
+                    c_buffer.seek(0)
+                    zip_file.writestr(c_filename, c_buffer.getvalue())
+                    logger.info(f"Cevap dosyası eklendi: {c_filename}")
         
-        # Geçici dosya oluştur
-        logger.info("Dosya kaydediliyor...")
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
-            doc.save(tmp_file.name)
-            tmp_file_path = tmp_file.name
-        logger.info(f"Dosya kaydedildi: {tmp_file_path}")
+        # ZIP buffer'ı hazırla
+        zip_buffer.seek(0)
         
-        # Dosya adı oluştur
-        filename = f"mulakat_sorulari_{contract.title.replace(' ', '_')}_{contract_id}.docx"
-        logger.info(f"Dosya adı: {filename}")
+        logger.info("ZIP dosyası oluşturuldu, Response döndürülüyor...")
         
-        logger.info("FileResponse döndürülüyor...")
-        return FileResponse(
-            path=tmp_file_path,
-            filename=filename,
-            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        # Türkçe karakterleri temizle
+        safe_title = contract.title.replace(" ", "_").replace("Ş", "S").replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O").replace("Ü", "U").replace("ş", "s").replace("ç", "c").replace("ğ", "g").replace("ı", "i").replace("ö", "o").replace("ü", "u")
+        
+        # ZIP dosyasını döndür
+        return Response(
+            content=zip_buffer.getvalue(),
+            media_type='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename="mulakat_sorulari_{safe_title}_{contract_id}.zip"'
+            }
         )
         
     except Exception as e:
-        logger.error(f"Word dosyası oluşturma hatası: {str(e)}")
+        logger.error(f"Word dosyaları oluşturma hatası: {str(e)}")
         logger.error(f"Hata detayı: {type(e).__name__}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")

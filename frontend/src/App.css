@@ -3201,3 +3201,37 @@
   color: #2c3e50;
   font-size: 1rem;
 }
+
+.question-number {
+  font-weight: bold;
+  color: #007bff;
+  margin-right: 8px;
+}
+
+.expected-answer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.expected-answer h5 {
+  margin: 0 0 8px 0;
+  color: #495057;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.answer-content {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid #28a745;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #495057;
+}
+
+.answer-content strong {
+  color: #dc3545;
+  font-weight: 600;
+}

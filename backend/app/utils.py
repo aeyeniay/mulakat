@@ -130,7 +130,7 @@ Zorluk Seviyesi: {difficulty}
 
 Özel Şartlar: {special_requirements}
 
-Görev: {type_name} kategorisinde {i+1}. soruyu üret.
+Görev: {type_name} kategorisinde {i+1}. soruyu ve beklenen cevabını üret.
 
 PROFESYONEL RUBRİK MODELİ - Zorluk Katmanları:
 K1: Temel Bilgi - Tanım, sözdizimi, kavram (Remember/Novice)
@@ -139,14 +139,15 @@ K3: Hata Çözümleme - Gerçek log/kod verip sorun bulma (Analyze/Competent)
 K4: Tasarım - Komponent diyagramı, ölçeklenir mimari, best-practice seçimi (Evaluate/Proficient)
 K5: Stratejik & Liderlik - Trade-off analizi, roadmap, takım-proses optimizasyonu (Create/Expert)
 
-Soru gereksinimleri:
+Soru ve Cevap gereksinimleri:
 - {type_name} alanında spesifik ve detaylı bir soru olmalı
 - Zorluk seviyesi: {difficulty} ({salary_coefficient}x seviyesine uygun katmanlarda)
 - Pozisyonun özel şartlarına uygun olmalı
-- Tek bir soru üret, JSON formatında değil
-- Sadece soru metnini döndür
+- Beklenen cevap jüriyi bilgilendirici tonda yazılmalı (adayın ağzından değil)
+- Beklenen cevap şu yapıda olmalı: "Adayın [konu] hakkında [beklenen bilgi/deneyim] göstermesi beklenir. [Detaylı açıklama ve örnekler]"
+- JSON formatında döndür: {{"question": "soru metni", "expected_answer": "beklenen cevap"}}
 
-Soru:"""
+Soru ve Beklenen Cevap:"""
 
                         try:
                             response = client.chat.completions.create(
@@ -173,27 +174,39 @@ Soru:"""
                         
                         # Try to extract JSON from the response
                         try:
+                            # Markdown code block'ları temizle
+                            cleaned_text = generated_text.strip()
+                            if cleaned_text.startswith('```json'):
+                                cleaned_text = cleaned_text.replace('```json', '').replace('```', '').strip()
+                            elif cleaned_text.startswith('```'):
+                                cleaned_text = cleaned_text.replace('```', '').strip()
+                            
                             # Eğer JSON formatında geldiyse parse et
-                            if generated_text.strip().startswith('{'):
-                                question_data = json.loads(generated_text)
-                                question_text = question_data.get('question', generated_text.strip())
+                            if cleaned_text.startswith('{'):
+                                question_data = json.loads(cleaned_text)
+                                question_text = question_data.get('question', cleaned_text)
+                                expected_answer = question_data.get('expected_answer', '')
                             else:
                                 # Düz metin olarak gelirse direkt kullan
-                                question_text = generated_text.strip()
+                                question_text = cleaned_text
+                                expected_answer = ''
                             
                             # Soruyu ekle
                             all_questions[question_type].append({
                                 "question": question_text,
+                                "expected_answer": expected_answer,
                                 "difficulty": difficulty,
                                 "role": role_name
                             })
                             
-                            logger.info(f"{type_name} sorusu {i+1} başarıyla üretildi")
+                            logger.info(f"{type_name} sorusu {i+1} ve cevabı başarıyla üretildi")
                             
-                        except json.JSONDecodeError:
+                        except json.JSONDecodeError as e:
+                            logger.error(f"JSON parse hatası: {e}")
                             # JSON parse hatası durumunda düz metin olarak kullan
                             all_questions[question_type].append({
                                 "question": generated_text.strip(),
+                                "expected_answer": '',
                                 "difficulty": difficulty,
                                 "role": role_name
                             })

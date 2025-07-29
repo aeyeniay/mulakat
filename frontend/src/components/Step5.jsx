@@ -24,7 +24,7 @@ function Step5({ contractId, onPrevious }) {
             
             // Dosya adını response header'dan al veya default kullan
             const contentDisposition = response.headers['content-disposition'];
-            let filename = 'mulakat_sorulari.docx';
+            let filename = 'mulakat_sorulari.zip';
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename="(.+)"/);
                 if (filenameMatch) {
@@ -54,20 +54,20 @@ function Step5({ contractId, onPrevious }) {
             <h2>Adım 5: Final Seti</h2>
             
             <div className="step5-description">
-                <p>Tebrikler! Mülakat sorularınız başarıyla üretildi. Şimdi bu soruları Word dosyası olarak indirebilirsiniz.</p>
+                <p>Tebrikler! Mülakat sorularınız başarıyla üretildi. Şimdi bu soruları ayrı Word dosyaları olarak indirebilirsiniz.</p>
             </div>
             
             <div className="download-section">
-                <h3>Word Dosyası İndirme</h3>
-                <p>Üretilen soruları profesyonel bir Word dosyası formatında indirin. Dosya şunları içerecek:</p>
+                <h3>Word Dosyaları İndirme</h3>
+                <p>Üretilen soruları ayrı Word dosyaları formatında indirin. Her aday için ayrı soru kitapçığı ve jüri için cevap kitapçığı oluşturulacak:</p>
                 
                 <ul className="features-list">
-                    <li>✓ İlan bilgileri ve kurum detayları</li>
-                    <li>✓ Her pozisyon için ayrı bölüm</li>
+                    <li>✓ Her aday için ayrı soru kitapçığı (S1, S2, S3...)</li>
+                    <li>✓ Jüri için cevap kitapçıkları (C1, C2, C3...)</li>
+                    <li>✓ Her pozisyon için ayrı dosyalar</li>
                     <li>✓ Soru kategorileri (Mesleki Deneyim, Teorik Bilgi, Pratik Uygulama)</li>
                     <li>✓ Numaralandırılmış sorular</li>
-                    <li>✓ Zorluk seviyeleri</li>
-                    <li>✓ Profesyonel format ve düzen</li>
+                    <li>✓ ZIP dosyası içinde düzenli organizasyon</li>
                 </ul>
                 
                 <button 
@@ -75,7 +75,7 @@ function Step5({ contractId, onPrevious }) {
                     disabled={downloading}
                     className="download-btn"
                 >
-                    {downloading ? 'Dosya Hazırlanıyor...' : 'Word Dosyasını İndir'}
+                    {downloading ? 'Dosyalar Hazırlanıyor...' : 'Word Dosyalarını İndir'}
                 </button>
                 
                 {error && (
@@ -86,7 +86,7 @@ function Step5({ contractId, onPrevious }) {
                 
                 {downloading && (
                     <div className="processing-info">
-                        <p>⏳ Word dosyası hazırlanıyor, lütfen bekleyin...</p>
+                        <p>⏳ Word dosyaları hazırlanıyor, lütfen bekleyin...</p>
                     </div>
                 )}
             </div>
@@ -94,7 +94,7 @@ function Step5({ contractId, onPrevious }) {
             {completed && (
                 <div className="completion-message">
                     <h3>🎉 İşlem Tamamlandı!</h3>
-                    <p>Mülakat sorularınız başarıyla oluşturuldu ve Word dosyası olarak indirildi. Bu dosyayı mülakat sürecinizde kullanabilirsiniz.</p>
+                    <p>Mülakat sorularınız başarıyla oluşturuldu ve Word dosyaları olarak indirildi. ZIP dosyasını açarak aday ve jüri kitapçıklarını kullanabilirsiniz.</p>
                 </div>
             )}
 
