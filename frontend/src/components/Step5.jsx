@@ -1,147 +1,114 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
-const Step5 = ({ contractId, onNext, onPrevious }) => {
-  const [loading, setLoading] = useState(false);
-  const [contractData, setContractData] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [completed, setCompleted] = useState(false);
+function Step5({ contractId, onPrevious }) {
+    const [downloading, setDownloading] = useState(false);
+    const [error, setError] = useState(null);
+    const [completed, setCompleted] = useState(false);
 
-  // Contract bilgilerini yükle
-  useEffect(() => {
-    const fetchContractData = async () => {
-      try {
-        setLoading(true);
+    const downloadWordDocument = async () => {
+        setDownloading(true);
+        setError(null);
         
-        // Contract bilgilerini al
-        const contractResponse = await axios.get(`http://localhost:8000/api/step1/contract/${contractId}`);
-        if (contractResponse.data.success) {
-          setContractData(contractResponse.data.contract);
+        try {
+            const response = await axios.post('/api/step5/generate-word', {
+                contract_id: contractId
+            }, {
+                responseType: 'blob' // Dosya indirme için gerekli
+            });
+            
+            // Dosyayı indir
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Dosya adını response header'dan al veya default kullan
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = 'mulakat_sorulari.docx';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+            
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            
+            // Başarılı indirme sonrası tamamlandı mesajını göster
+            setCompleted(true);
+            
+        } catch (error) {
+            console.error('Word dosyası indirme hatası:', error);
+            setError('Word dosyası indirilirken bir hata oluştu. Lütfen tekrar deneyin.');
+        } finally {
+            setDownloading(false);
         }
-        
-        // Üretilen soruları al
-        const questionsResponse = await axios.get(`http://localhost:8000/api/step4/questions/${contractId}`);
-        if (questionsResponse.data.success) {
-          setQuestions(questionsResponse.data.questions_by_role);
-        }
-        
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
     };
 
-    if (contractId) {
-      fetchContractData();
-    }
-  }, [contractId]);
-
-  // Soru seçimi
-  const handleQuestionSelect = (questionId, isSelected) => {
-    if (isSelected) {
-      setSelectedQuestions(prev => [...prev, questionId]);
-    } else {
-      setSelectedQuestions(prev => prev.filter(id => id !== questionId));
-    }
-  };
-
-  // Final soru setini oluştur
-  const createFinalQuestionSet = async () => {
-    if (selectedQuestions.length === 0) {
-      alert('Lütfen en az bir soru seçin');
-      return;
-    }
-
-    setCompleted(true);
-    // Burada final soru seti oluşturma işlemi yapılabilir
-  };
-
-  return (
-    <div className="step-container">
-      <h2>Adım 5: Final Soru Seti Oluşturma</h2>
-      
-      <div className="step5-description">
-        <p>Üretilen sorulardan final mülakat setini oluşturun.</p>
-      </div>
-
-      {loading ? (
-        <div className="loading-message">
-          <p>Veriler yükleniyor...</p>
-        </div>
-      ) : (
-        <>
-          {/* Contract Bilgisi */}
-          {contractData && (
-            <div className="contract-info">
-              <h3>İlan Bilgileri</h3>
-              <p><strong>Başlık:</strong> {contractData.title}</p>
-            </div>
-          )}
-
-          {/* Soru Seçimi */}
-          <div className="question-selection">
-            <h3>Soru Seçimi</h3>
-            <p>Final mülakat seti için soruları seçin:</p>
+    return (
+        <div className="step-container">
+            <h2>Adım 5: Final Seti</h2>
             
-            {questions.map((roleData, roleIndex) => (
-              <div key={roleIndex} className="role-questions-section">
-                <h4>{roleData.role_name}</h4>
+            <div className="step5-description">
+                <p>Tebrikler! Mülakat sorularınız başarıyla üretildi. Şimdi bu soruları Word dosyası olarak indirebilirsiniz.</p>
+            </div>
+            
+            <div className="download-section">
+                <h3>Word Dosyası İndirme</h3>
+                <p>Üretilen soruları profesyonel bir Word dosyası formatında indirin. Dosya şunları içerecek:</p>
                 
-                {Object.entries(roleData.questions || {}).map(([type, questions]) => (
-                  <div key={type} className="question-type-section">
-                    <h5>{type === 'professional_experience' ? 'Mesleki Deneyim' : 
-                         type === 'theoretical_knowledge' ? 'Teorik Bilgi' : 
-                         'Pratik Uygulama'} Soruları</h5>
-                    
-                    {questions.map((question, qIndex) => (
-                      <div key={qIndex} className="question-item-selectable">
-                        <label className="question-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={selectedQuestions.includes(question.id)}
-                            onChange={(e) => handleQuestionSelect(question.id, e.target.checked)}
-                          />
-                          <span className="question-text">{question.question}</span>
-                        </label>
-                        <div className="question-details">
-                          <span className="difficulty-badge">{question.difficulty}</span>
-                          {question.expected_answer && (
-                            <span className="has-answer">Beklenen Cevap Var</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+                <ul className="features-list">
+                    <li>✓ İlan bilgileri ve kurum detayları</li>
+                    <li>✓ Her pozisyon için ayrı bölüm</li>
+                    <li>✓ Soru kategorileri (Mesleki Deneyim, Teorik Bilgi, Pratik Uygulama)</li>
+                    <li>✓ Numaralandırılmış sorular</li>
+                    <li>✓ Zorluk seviyeleri</li>
+                    <li>✓ Profesyonel format ve düzen</li>
+                </ul>
+                
+                <button 
+                    onClick={downloadWordDocument} 
+                    disabled={downloading}
+                    className="download-btn"
+                >
+                    {downloading ? 'Dosya Hazırlanıyor...' : 'Word Dosyasını İndir'}
+                </button>
+                
+                {error && (
+                    <div className="error-message">
+                        <p>❌ {error}</p>
+                    </div>
+                )}
+                
+                {downloading && (
+                    <div className="processing-info">
+                        <p>⏳ Word dosyası hazırlanıyor, lütfen bekleyin...</p>
+                    </div>
+                )}
+            </div>
+            
+            {completed && (
+                <div className="completion-message">
+                    <h3>🎉 İşlem Tamamlandı!</h3>
+                    <p>Mülakat sorularınız başarıyla oluşturuldu ve Word dosyası olarak indirildi. Bu dosyayı mülakat sürecinizde kullanabilirsiniz.</p>
+                </div>
+            )}
 
-          {/* Seçim Özeti */}
-          <div className="selection-summary">
-            <h3>Seçim Özeti</h3>
-            <p>Seçilen soru sayısı: <strong>{selectedQuestions.length}</strong></p>
-          </div>
-
-          {/* Navigation */}
-          <div className="step-navigation">
-            <button onClick={onPrevious} className="nav-button">
-              ← Önceki Adım
-            </button>
-            <button 
-              onClick={createFinalQuestionSet} 
-              className="nav-button primary"
-              disabled={selectedQuestions.length === 0}
-            >
-              Final Seti Oluştur
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
+            {/* Adım Aksiyonları */}
+            <div className="step-actions">
+                <button 
+                    onClick={onPrevious}
+                    className="btn-secondary"
+                >
+                    Önceki Adım
+                </button>
+            </div>
+        </div>
+    );
+}
 
 export default Step5; 

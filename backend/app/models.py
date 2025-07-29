@@ -35,68 +35,112 @@ class Role(Base):
 
     @property
     def difficulty_level(self):
-        """Maaş katsayısına göre zorluk seviyesi belirle"""
+        """Maaş katsayısına göre zorluk seviyesi belirle - 5 Katmanlı Model"""
         if self.salary_multiplier <= 2:
             return {
                 "level": "temel",
-                "name": "🟢 TEMEL",
-                "description": "3 yıl tecrübe - Syntax, temel kavramlar, basit uygulamalar",
-                "experience_years": "3 yıl",
-                "focus": "Temel syntax, framework kullanımı, basit algoritma"
+                "name": "🟢 ORTA DÜZEY UZMAN (2x)",
+                "description": "2-4 yıl tecrübe - Günlük operasyonu eksiksiz yürütme, temel optimizasyon",
+                "experience_years": "2-4 yıl",
+                "focus": "İşe hazır teknik beceri, temel araçlar ve çerçevelerde yetkinlik",
+                "katman_dagilimi": {
+                    "K1_Temel_Bilgi": 30,      # Tanım, sözdizimi, kavram
+                    "K2_Uygulamali": 40,        # Küçük kod-konfig yazma, CLI komutu
+                    "K3_Hata_Cozumleme": 25,    # Gerçek log/kod verip sorun bulma
+                    "K4_Tasarim": 5,            # Komponent diyagramı, basit mimari
+                    "K5_Stratejik": 0           # Trade-off analizi, roadmap
+                },
+                "bloom_seviyesi": "Remember/Apply",
+                "dreyfus_seviyesi": "Novice/Advanced Beginner"
             }
         elif self.salary_multiplier <= 3:
             return {
                 "level": "orta", 
-                "name": "🟡 ORTA",
-                "description": "5-7 yıl tecrübe - Mimari yaklaşımlar, best practices, problem çözme",
-                "experience_years": "5-7 yıl",
-                "focus": "Tasarım kalıpları, mimari kararlar, performans optimizasyonu"
+                "name": "🟡 KIDEMLI UZMAN (3x)",
+                "description": "5-8 yıl tecrübe - Çapraz disiplinde hâkimiyet, mentorluk, kritik problem çözümü",
+                "experience_years": "5-8 yıl",
+                "focus": "Tasarım kalıpları, mimari kararlar, performans optimizasyonu, mentorluk",
+                "katman_dagilimi": {
+                    "K1_Temel_Bilgi": 15,      # Temel kavramlar
+                    "K2_Uygulamali": 25,        # Gelişmiş uygulama
+                    "K3_Hata_Cozumleme": 35,    # Kritik problem çözümü
+                    "K4_Tasarim": 20,           # Mimari tasarım, best-practice
+                    "K5_Stratejik": 5           # Stratejik kararlar
+                },
+                "bloom_seviyesi": "Analyze/Evaluate",
+                "dreyfus_seviyesi": "Competent/Proficient"
             }
         elif self.salary_multiplier <= 4:
             return {
                 "level": "ileri",
-                "name": "🟠 İLERİ", 
-                "description": "8-10 yıl tecrübe - Sistem tasarımı, performans tuning, kompleks problemler",
+                "name": "🟠 MİMAR/TEKNİK LİDER (4x)", 
+                "description": "8-10 yıl tecrübe - Strateji, büyük ölçekli mimari, metodoloji, ekip & süreç yönetimi",
                 "experience_years": "8-10 yıl", 
-                "focus": "Sistem mimarisi, scalability, güvenlik, team leadership"
+                "focus": "Sistem mimarisi, scalability, güvenlik, team leadership, stratejik planlama",
+                "katman_dagilimi": {
+                    "K1_Temel_Bilgi": 5,       # Minimal temel
+                    "K2_Uygulamali": 15,        # İleri uygulama
+                    "K3_Hata_Cozumleme": 25,    # Kompleks problem çözümü
+                    "K4_Tasarim": 35,           # Büyük ölçekli mimari tasarım
+                    "K5_Stratejik": 20          # Stratejik kararlar, roadmap
+                },
+                "bloom_seviyesi": "Evaluate/Create",
+                "dreyfus_seviyesi": "Proficient/Expert"
             }
-        else:
+        else:  # 5x ve üzeri
             return {
                 "level": "uzman",
-                "name": "🔴 UZMAN",
-                "description": "10+ yıl tecrübe - Enterprise mimari, strategik kararlar, teknoloji liderliği", 
+                "name": "🔴 ENTERPRISE UZMAN (5x+)",
+                "description": "10+ yıl tecrübe - Enterprise mimari, strategik kararlar, teknoloji liderliği, global ölçek",
                 "experience_years": "10+ yıl",
-                "focus": "Enterprise architecture, strategic decisions, innovation"
+                "focus": "Enterprise architecture, strategic decisions, innovation, global governance",
+                "katman_dagilimi": {
+                    "K1_Temel_Bilgi": 0,       # Minimal
+                    "K2_Uygulamali": 10,        # Stratejik uygulama
+                    "K3_Hata_Cozumleme": 20,    # Enterprise problem çözümü
+                    "K4_Tasarim": 30,           # Enterprise mimari tasarım
+                    "K5_Stratejik": 40          # Stratejik liderlik, roadmap
+                },
+                "bloom_seviyesi": "Create",
+                "dreyfus_seviyesi": "Expert"
             }
 
     @property 
     def question_difficulty_distribution(self):
-        """Zorluk seviyesine göre soru dağılımı"""
+        """Zorluk seviyesine göre soru dağılımı - 5 Katmanlı Model"""
         difficulty = self.difficulty_level
         
-        if difficulty["level"] == "temel":
+        if difficulty["level"] == "temel":  # 2x
             return {
-                "kolay": 70,    # %70 kolay soru
-                "orta": 25,     # %25 orta soru  
-                "zor": 5        # %5 zor soru
+                "K1_Temel_Bilgi": 30,      # Tanım, sözdizimi, kavram
+                "K2_Uygulamali": 40,        # Küçük kod-konfig yazma, CLI komutu
+                "K3_Hata_Cozumleme": 25,    # Gerçek log/kod verip sorun bulma
+                "K4_Tasarim": 5,            # Komponent diyagramı, basit mimari
+                "K5_Stratejik": 0           # Trade-off analizi, roadmap
             }
-        elif difficulty["level"] == "orta":
+        elif difficulty["level"] == "orta":  # 3x
             return {
-                "kolay": 40,    # %40 kolay
-                "orta": 45,     # %45 orta
-                "zor": 15       # %15 zor
+                "K1_Temel_Bilgi": 15,      # Temel kavramlar
+                "K2_Uygulamali": 25,        # Gelişmiş uygulama
+                "K3_Hata_Cozumleme": 35,    # Kritik problem çözümü
+                "K4_Tasarim": 20,           # Mimari tasarım, best-practice
+                "K5_Stratejik": 5           # Stratejik kararlar
             }
-        elif difficulty["level"] == "ileri":
+        elif difficulty["level"] == "ileri":  # 4x
             return {
-                "kolay": 20,    # %20 kolay
-                "orta": 50,     # %50 orta  
-                "zor": 30       # %30 zor
+                "K1_Temel_Bilgi": 5,       # Minimal temel
+                "K2_Uygulamali": 15,        # İleri uygulama
+                "K3_Hata_Cozumleme": 25,    # Kompleks problem çözümü
+                "K4_Tasarim": 35,           # Büyük ölçekli mimari tasarım
+                "K5_Stratejik": 20          # Stratejik kararlar, roadmap
             }
-        else:  # uzman
+        else:  # uzman (5x+)
             return {
-                "kolay": 10,    # %10 kolay
-                "orta": 40,     # %40 orta
-                "zor": 50       # %50 zor
+                "K1_Temel_Bilgi": 0,       # Minimal
+                "K2_Uygulamali": 10,        # Stratejik uygulama
+                "K3_Hata_Cozumleme": 20,    # Enterprise problem çözümü
+                "K4_Tasarim": 30,           # Enterprise mimari tasarım
+                "K5_Stratejik": 40          # Stratejik liderlik, roadmap
             }
 
 class QuestionType(Base):

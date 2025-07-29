@@ -1,216 +1,154 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const Step4 = ({ contractId, onNext, onPrevious }) => {
-  const [loading, setLoading] = useState(false);
-  const [contractData, setContractData] = useState(null);
-  const [roles, setRoles] = useState([]);
-  const [configs, setConfigs] = useState([]);
-  const [questions, setQuestions] = useState([]);
-  const [processing, setProcessing] = useState(false);
-  const [selectedModel] = useState("gpt-4o-mini");  // OpenAI GPT-4o-mini model
-  const [completed, setCompleted] = useState(false);
-  const [gpuUsed, setGpuUsed] = useState(false);
+function Step4({ contractId, onNext, onPrevious }) {
+    const [questions, setQuestions] = useState([]);
+    const [processing, setProcessing] = useState(false);
+    const [selectedModel] = useState("gpt-4o-mini");  // OpenAI GPT-4o-mini model
+    const [completed, setCompleted] = useState(false);
 
-  // Contract bilgilerini yükle
-  useEffect(() => {
-    const fetchContractData = async () => {
-      try {
-        setLoading(true);
-        
-        // Contract bilgilerini al
-        const contractResponse = await axios.get(`http://localhost:8000/api/step1/contract/${contractId}`);
-        if (contractResponse.data.success) {
-          setContractData(contractResponse.data.contract);
+    useEffect(() => {
+        // Eğer daha önce sorular üretilmişse onları yükle
+        if (contractId) {
+            loadExistingQuestions();
         }
-        
-        // Role bilgilerini al
-        const rolesResponse = await axios.get(`http://localhost:8000/api/step2/roles/${contractId}`);
-        if (rolesResponse.data.success) {
-          setRoles(rolesResponse.data.roles);
+    }, [contractId]);
+
+    const loadExistingQuestions = async () => {
+        try {
+            const response = await axios.get(`/api/step4/questions/${contractId}`);
+            if (response.data.success && response.data.questions) {
+                setQuestions(response.data.questions);
+                setCompleted(true);
+            }
+        } catch (error) {
+            console.error('Error loading existing questions:', error);
         }
-        
-        // Role config bilgilerini al
-        const configsResponse = await axios.get(`http://localhost:8000/api/step3/role-question-configs/${contractId}`);
-        if (configsResponse.data.success) {
-          setConfigs(configsResponse.data.role_configs);
-        }
-        
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
     };
 
-    if (contractId) {
-      fetchContractData();
-    }
-  }, [contractId]);
+    const generateQuestions = async () => {
+        setProcessing(true);
+        try {
+            const response = await axios.post('/api/step4/generate-questions', {
+                contract_id: contractId,
+                model_name: selectedModel
+            });
 
-  // Direkt soru üretimi
-  const generateQuestions = async () => {
-    setProcessing(true);
-    
-    try {
-      const response = await axios.post('http://localhost:8000/api/step4/generate-questions', {
-        contract_id: contractId,
-        model_name: selectedModel
-      });
-      
-      if (response.data.success) {
-        setQuestions(response.data.questions);
-        setCompleted(true);
-        // GPU kullanım bilgisini al
-        const gpuUsed = response.data.questions.some(q => q.gpu_used);
-        setGpuUsed(gpuUsed);
-      } else {
-        alert('Soru üretimi sırasında hata oluştu');
-      }
-      
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      alert('Soru üretimi sırasında hata oluştu');
-    } finally {
-      setProcessing(false);
-    }
-  };
+            if (response.data.success) {
+                // Backend'den gelen veriyi düzgün formata çevir
+                const backendQuestions = response.data.questions;
+                if (Array.isArray(backendQuestions) && backendQuestions.length > 0) {
+                    // Tüm rolleri ve sorularını sakla
+                    setQuestions(backendQuestions);
+                } else {
+                    setQuestions([]);
+                }
+                setCompleted(true);
+            } else {
+                alert('Soru üretimi başarısız: ' + response.data.error);
+            }
+        } catch (error) {
+            console.error('Error generating questions:', error);
+            alert('Soru üretimi sırasında hata oluştu: ' + error.message);
+        } finally {
+            setProcessing(false);
+        }
+    };
 
-  // Üretilen soruları görüntüle
-  const viewGeneratedQuestions = async () => {
-    try {
-      const response = await axios.get(`http://localhost:8000/api/step4/questions/${contractId}`);
-      if (response.data.success) {
-        setQuestions(response.data.questions_by_role);
-        setCompleted(true);
-      }
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-    }
-  };
+    const handleNext = () => {
+        if (!completed) {
+            const confirmLeave = window.confirm('Sorular henüz üretilmedi. Devam etmek istiyor musunuz?');
+            if (!confirmLeave) return;
+        }
+        onNext(contractId);
+    };
 
-  // Sonraki adıma geç
-  const handleNext = () => {
-    if (!completed) {
-      alert('Lütfen önce soruları üretin');
-      return;
-    }
-    onNext(contractId);
-  };
+    const renderQuestions = () => {
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return <p>Henüz soru üretilmedi.</p>;
+        }
 
-  return (
-    <div className="step-container">
-      <h2>Adım 4: Soru Üretimi</h2>
-      
-      <div className="step4-description">
-        <p>Bu adımda AI modeliyle genel şartlar ve rol özel şartlarına dayanarak mülakat soruları üretilir.</p>
-      </div>
-
-      {loading ? (
-        <div className="loading-message">
-          <p>Veriler yükleniyor...</p>
-        </div>
-      ) : (
-        <>
-          {/* AI Model Bilgisi */}
-          <div className="model-info-section">
-            <h3>Kullanılan AI Modeli</h3>
-            <div className="model-details">
-              <input 
-                type="text" 
-                value={selectedModel} 
-                readOnly 
-                className="model-input"
-              />
-                             <div className="model-description">
-                 GPU Destekli • 27B Parametre • Yüksek Kalite
-               </div>
-            </div>
-          </div>
-
-          {/* Soru Üretimi */}
-          <div className="question-generation-section">
-            <h3>Soru Üretimi Başlat</h3>
-            <p>Bu işlem genel şartlar ve rol özel şartlarını analiz ederek, her rol için mülakat soruları üretecek.</p>
-            
-            <button 
-              onClick={generateQuestions}
-              disabled={processing}
-              className="generate-button"
-            >
-              {processing ? 'Sorular Üretiliyor...' : '🚀 Soruları Üret'}
-            </button>
-
-            {completed && (
-              <button 
-                onClick={viewGeneratedQuestions}
-                className="view-questions-button"
-              >
-                📋 Üretilen Soruları Görüntüle
-              </button>
-            )}
-          </div>
-
-          {/* GPU Kullanım Bilgisi */}
-          {completed && (
-            <div className="gpu-info">
-              <p>
-                {gpuUsed ? '✅ GPU ile çalıştırıldı' : '⚠️ CPU ile çalıştırıldı'}
-              </p>
-            </div>
-          )}
-
-          {/* Üretilen Sorular */}
-          {questions.length > 0 && (
-            <div className="questions-display">
-              <h3>Üretilen Sorular</h3>
-              {questions.map((roleData, index) => (
-                <div key={index} className="role-questions">
-                  <h4>{roleData.role_name}</h4>
-                  
-                  {roleData.error ? (
-                    <div className="error-message">
-                      <p>Hata: {roleData.error}</p>
+        return questions.map((role, roleIndex) => (
+            <div key={roleIndex} className="role-questions-section">
+                <div className="role-header">
+                    <h3>{role.role_name}</h3>
+                    <div className="role-info">
+                        <span className="multiplier-badge" data-multiplier={role.salary_multiplier}>
+                            {role.salary_multiplier}x
+                        </span>
                     </div>
-                  ) : (
-                    <div className="questions-by-type">
-                      {Object.entries(roleData.questions || {}).map(([type, questions]) => (
-                        <div key={type} className="question-type">
-                          <h5>{type === 'professional_experience' ? 'Mesleki Deneyim' : 
-                               type === 'theoretical_knowledge' ? 'Teorik Bilgi' : 
-                               'Pratik Uygulama'} Soruları</h5>
-                          {questions.map((q, qIndex) => (
-                            <div key={qIndex} className="question-item">
-                              <p><strong>Soru {qIndex + 1}:</strong> {q.question}</p>
-                              <p><strong>Zorluk:</strong> {q.difficulty}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              ))}
+                
+                {role.questions && Object.entries(role.questions).map(([type, questionList]) => (
+                    <div key={type} className="question-type">
+                        <h4>{type === 'professional_experience' ? 'Mesleki Deneyim' : 
+                             type === 'theoretical_knowledge' ? 'Teorik Bilgi' : 
+                             'Pratik Uygulama'} Soruları</h4>
+                        {Array.isArray(questionList) && questionList.map((q, qIndex) => (
+                            <div key={qIndex} className="question-item">
+                                <p className="question-text">{q.question}</p>
+                            </div>
+                        ))}
+                    </div>
+                ))}
             </div>
-          )}
+        ));
+    };
 
-          {/* Navigation */}
-          <div className="step-navigation">
-            <button onClick={onPrevious} className="nav-button">
-              ← Önceki Adım
-            </button>
-            <button 
-              onClick={handleNext} 
-              className="nav-button primary"
-              disabled={!completed}
-            >
-              Sonraki Adım →
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
+    return (
+        <div className="step-container">
+            <h2>Adım 4: Soru Üretimi</h2>
+            
+            <div className="step4-description">
+                <p>Bu adımda, daha önce belirlenen pozisyon, seviye ve uzmanlık alanı kriterlerine göre mülakat soruları yapay zekâ destekli olarak üretilecektir.</p>
+            </div>
+            
+            <div className="model-info">
+                <h4>Kullanılan Model: <span className="model-badge">GPT-4o-mini</span> (OpenAI API – Yüksek Doğruluk)</h4>
+                <p>Sorular; belirlenen konfigürasyona göre, yüksek kaliteli doğal dil üretimi sağlayan OpenAI altyapısı üzerinden otomatik olarak oluşturulacaktır.</p>
+            </div>
 
-export default Step4; 
+            {!completed ? (
+                <div className="generate-section">
+                    <button 
+                        onClick={generateQuestions} 
+                        disabled={processing}
+                        className="generate-btn"
+                    >
+                        {processing ? 'Sorular Üretiliyor...' : 'Soruları Üret'}
+                    </button>
+                    
+                    {processing && (
+                        <div className="processing-info">
+                            <p>⏳ Sorular üretiliyor, lütfen bekleyin...</p>
+                            <p>Bu işlem birkaç dakika sürebilir.</p>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="results-section">
+                    <h3>Üretilen Sorular</h3>
+                    {renderQuestions()}
+                </div>
+            )}
+
+            {/* Adım Aksiyonları - Her zaman görünür */}
+            <div className="step-actions">
+                <button 
+                    onClick={onPrevious}
+                    className="btn-secondary"
+                >
+                    Önceki Adım
+                </button>
+                <button 
+                    onClick={handleNext}
+                    className="btn-primary"
+                >
+                    Sonraki Adım
+                </button>
+            </div>
+        </div>
+    );
+}
+
+export default Step4;

@@ -261,16 +261,15 @@ const Step3 = ({ contractId, onNext, onPrevious }) => {
             {roleConfigs.map((roleConfig, roleIndex) => (
               <div key={roleConfig.role_id} className="role-config-card">
                 <div className="role-config-header">
-                  <h4>{roleConfig.role_name}</h4>
-                  <div className="role-summary">
-                    <span className="summary-item">
-                      {roleConfig.position_count} pozisyon × {globalConfig.candidate_multiplier} = 
-                      <strong> {roleConfig.candidate_count} aday</strong>
-                    </span>
-                    <span className="multiplier-badge" data-multiplier={roleConfig.salary_multiplier}>
-                      {roleConfig.salary_multiplier}x
+                  <div className="role-title-section">
+                    <h4>{roleConfig.role_name}</h4>
+                    <span className="position-calculation">
+                      {roleConfig.position_count} pozisyon × {globalConfig.candidate_multiplier} = {roleConfig.candidate_count} aday
                     </span>
                   </div>
+                  <span className="multiplier-badge" data-multiplier={roleConfig.salary_multiplier}>
+                    {roleConfig.salary_multiplier}x
+                  </span>
                 </div>
                 
                 <div className="question-types-grid">

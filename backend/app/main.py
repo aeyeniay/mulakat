@@ -21,38 +21,66 @@ Base.metadata.create_all(bind=engine)
 
 # Zorluk seviyesi helper fonksiyonları
 def get_difficulty_level_by_multiplier(salary_multiplier: float):
-    """Maaş katsayısına göre zorluk seviyesi belirle"""
+    """Maaş katsayısına göre zorluk seviyesi belirle - Profesyonel Rubrik Modeli"""
     if salary_multiplier <= 2:
         return {
-            "level": "temel",
-            "name": "🟢 TEMEL",
-            "description": "3 yıl tecrübe - Syntax, temel kavramlar, basit uygulamalar",
-            "experience_years": "3 yıl",
-            "focus": "Temel syntax, framework kullanımı, basit algoritma"
+            "level": "2x",
+            "name": "🟢 ORTA SEVİYE UYGULAYICI",
+            "description": "2-4 yıl tecrübe - Günlük operasyonu eksiksiz yürütme, temel optimizasyon",
+            "experience_years": "2-4 yıl",
+            "focus": "K1: 30% • K2: 40% • K3: 25% • K4: 5% • K5: 0%",
+            "question_distribution": {
+                "K1_temel_bilgi": 30,
+                "K2_uygulamali": 40, 
+                "K3_hatacozumleme": 25,
+                "K4_tasarim": 5,
+                "K5_stratejik_liderlik": 0
+            }
         }
     elif salary_multiplier <= 3:
         return {
-            "level": "orta", 
-            "name": "🟡 ORTA",
-            "description": "5-7 yıl tecrübe - Mimari yaklaşımlar, best practices, problem çözme",
-            "experience_years": "5-7 yıl",
-            "focus": "Tasarım kalıpları, mimari kararlar, performans optimizasyonu"
+            "level": "3x",
+            "name": "🟡 KIDEMLI UZMAN", 
+            "description": "5-8 yıl tecrübe - Çapraz disiplinde hâkimiyet, mentorluk, kritik problem çözümü",
+            "experience_years": "5-8 yıl",
+            "focus": "K1: 15% • K2: 25% • K3: 35% • K4: 20% • K5: 5%",
+            "question_distribution": {
+                "K1_temel_bilgi": 15,
+                "K2_uygulamali": 25,
+                "K3_hatacozumleme": 35,
+                "K4_tasarim": 20,
+                "K5_stratejik_liderlik": 5
+            }
         }
     elif salary_multiplier <= 4:
         return {
-            "level": "ileri",
-            "name": "🟠 İLERİ", 
-            "description": "8-10 yıl tecrübe - Sistem tasarımı, performans tuning, kompleks problemler",
-            "experience_years": "8-10 yıl", 
-            "focus": "Sistem mimarisi, scalability, güvenlik, team leadership"
+            "level": "4x",
+            "name": "🟠 MİMAR/TEKNİK LİDER", 
+            "description": "≥10 yıl tecrübe - Strateji, büyük ölçekli mimari, metodoloji, ekip & süreç yönetimi",
+            "experience_years": "≥10 yıl", 
+            "focus": "K1: 5% • K2: 15% • K3: 25% • K4: 35% • K5: 20%",
+            "question_distribution": {
+                "K1_temel_bilgi": 5,
+                "K2_uygulamali": 15,
+                "K3_hatacozumleme": 25,
+                "K4_tasarim": 35,
+                "K5_stratejik_liderlik": 20
+            }
         }
     else:
         return {
-            "level": "uzman",
-            "name": "🔴 UZMAN",
-            "description": "10+ yıl tecrübe - Enterprise mimari, strategik kararlar, teknoloji liderliği", 
-            "experience_years": "10+ yıl",
-            "focus": "Enterprise architecture, strategic decisions, innovation"
+            "level": "5x",
+            "name": "🔴 ENTERPRISE UZMAN",
+            "description": "15+ yıl tecrübe - Enterprise mimari, strategik kararlar, teknoloji liderliği", 
+            "experience_years": "15+ yıl",
+            "focus": "K1: 0% • K2: 10% • K3: 20% • K4: 40% • K5: 30%",
+            "question_distribution": {
+                "K1_temel_bilgi": 0,
+                "K2_uygulamali": 10,
+                "K3_hatacozumleme": 20,
+                "K4_tasarim": 40,
+                "K5_stratejik_liderlik": 30
+            }
         }
 
 # Default soru tiplerini ekle
@@ -708,14 +736,20 @@ async def generate_questions_directly(
                 for qt in question_types:
                     config = config_map.get(qt.id)
                     
-                    if config:
+                    if config and hasattr(config, 'question_count'):
                         # Mevcut konfigürasyon varsa onu kullan
                         count = config.question_count
                     else:
                         # Global config'e göre hesapla (Step 3'teki mantık)
                         candidate_count = role.position_count * global_config.candidate_multiplier
                         distribution = global_config.question_type_distribution or {}
-                        questions_per_candidate = distribution.get(qt.code, 1)
+                        
+                        # distribution bir dict değilse default değer kullan
+                        if isinstance(distribution, dict):
+                            questions_per_candidate = distribution.get(qt.code, 1)
+                        else:
+                            questions_per_candidate = 1
+                            
                         count = candidate_count * questions_per_candidate
                     
                     question_distribution[qt.code] = count
@@ -724,7 +758,7 @@ async def generate_questions_directly(
                 # Global config yoksa default değerler
                 for qt in question_types:
                     config = config_map.get(qt.id)
-                    count = config.question_count if config else 5
+                    count = config.question_count if (config and hasattr(config, 'question_count')) else 5
                     question_distribution[qt.code] = count
                     logger.info(f"Question type {qt.code}: {count} questions (default)")
             
@@ -785,6 +819,7 @@ ZORLUK SEVİYESİ: {role_difficulty['description']}
                 all_questions.append({
                     "role_name": role.name,
                     "role_id": role.id,
+                    "salary_multiplier": role.salary_multiplier,
                     "questions": questions,
                     "difficulty_info": role_difficulty,
                     "model_used": model_name,
@@ -795,6 +830,7 @@ ZORLUK SEVİYESİ: {role_difficulty['description']}
                 all_questions.append({
                     "role_name": role.name,
                     "role_id": role.id,
+                    "salary_multiplier": role.salary_multiplier,
                     "error": questions_result.get("error", "Soru üretiminde hata"),
                     "model_used": model_name,
                     "gpu_used": questions_result.get("gpu_used", False)
@@ -1038,6 +1074,127 @@ async def get_4o_mini_models():
 
 # Eski Step 3 endpoint'lerini kaldır veya yorum yap
 # Sistem bilgileri ve soru üretimi sonraki adımlarda kullanılacak
+
+# Word dosyası oluşturma endpoint'i
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from fastapi.responses import FileResponse
+import tempfile
+import os
+
+@app.post("/api/step5/generate-word")
+async def generate_word_document(
+    request_data: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Üretilen soruları Word dosyası olarak indir"""
+    try:
+        logger.info(f"Word dosyası oluşturma başlatıldı. Request data: {request_data}")
+        contract_id = request_data.get("contract_id")
+        
+        if not contract_id:
+            raise HTTPException(status_code=400, detail="contract_id gerekli")
+        
+        logger.info(f"Contract ID: {contract_id}")
+        
+        # Contract bilgilerini al
+        contract = db.query(Contract).filter(Contract.id == contract_id).first()
+        if not contract:
+            raise HTTPException(status_code=404, detail="İlan bulunamadı")
+        
+        logger.info(f"Contract bulundu: {contract.title}")
+        
+        # Rolleri ve soruları al
+        roles = db.query(Role).filter(Role.contract_id == contract_id).all()
+        logger.info(f"Roller bulundu: {len(roles)} adet")
+        
+        # Word dosyası oluştur
+        doc = Document()
+        logger.info("Word dosyası oluşturuldu")
+        
+        # Başlık
+        title = doc.add_heading('MÜLAKAT SORULARI', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # İlan bilgileri
+        doc.add_heading('İlan Bilgileri', level=1)
+        doc.add_paragraph(f'İlan Adı: {contract.title}')
+        doc.add_paragraph(f'Oluşturulma Tarihi: {contract.created_at.strftime("%d.%m.%Y") if contract.created_at else "Belirtilmemiş"}')
+        
+        # Toplam pozisyon sayısını hesapla
+        total_positions = sum(role.position_count for role in roles)
+        doc.add_paragraph(f'Toplam Pozisyon Sayısı: {total_positions}')
+        
+        doc.add_paragraph()  # Boşluk
+        
+        # Her rol için sorular
+        for role in roles:
+            logger.info(f"Rol işleniyor: {role.name}")
+            # Rol başlığı - istediğiniz formatta
+            role_title = f"{role.name} (Aylık brüt sözleşme ücret tavanının {role.salary_multiplier} katına kadar)"
+            doc.add_heading(role_title, level=2)
+            
+            # Bu role ait soruları al
+            questions = db.query(Question).filter(
+                Question.role_id == role.id,
+                Question.contract_id == contract_id
+            ).all()
+            logger.info(f"Rol {role.name} için {len(questions)} soru bulundu")
+            
+            # Soruları kategorilere göre grupla
+            questions_by_type = {}
+            for q in questions:
+                if q.question_type not in questions_by_type:
+                    questions_by_type[q.question_type] = []
+                questions_by_type[q.question_type].append(q)
+            logger.info(f"Soru kategorileri: {list(questions_by_type.keys())}")
+            
+            # Her soru tipi için
+            type_names = {
+                'professional_experience': 'Mesleki Deneyim Soruları',
+                'theoretical_knowledge': 'Teorik Bilgi Soruları',
+                'practical_application': 'Pratik Uygulama Soruları'
+            }
+            
+            for q_type, q_list in questions_by_type.items():
+                if q_list:
+                    doc.add_heading(type_names.get(q_type, q_type), level=3)
+                    
+                    for i, question in enumerate(q_list, 1):
+                        # Soru numarası ve metni
+                        p = doc.add_paragraph()
+                        p.add_run(f'{i}. ').bold = True
+                        p.add_run(question.question_text)
+                        
+                        doc.add_paragraph()  # Sorular arası boşluk
+            
+            doc.add_paragraph()  # Roller arası boşluk
+        
+        # Geçici dosya oluştur
+        logger.info("Dosya kaydediliyor...")
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+            doc.save(tmp_file.name)
+            tmp_file_path = tmp_file.name
+        logger.info(f"Dosya kaydedildi: {tmp_file_path}")
+        
+        # Dosya adı oluştur
+        filename = f"mulakat_sorulari_{contract.title.replace(' ', '_')}_{contract_id}.docx"
+        logger.info(f"Dosya adı: {filename}")
+        
+        logger.info("FileResponse döndürülüyor...")
+        return FileResponse(
+            path=tmp_file_path,
+            filename=filename,
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        
+    except Exception as e:
+        logger.error(f"Word dosyası oluşturma hatası: {str(e)}")
+        logger.error(f"Hata detayı: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True) 
