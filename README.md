@@ -1,53 +1,34 @@
-# Mülakat Soru Üretim Sistemi
+# Mülakat Soru Hazırlama Sistemi
 
-Bu proje, sözleşmeli bilişim personeli alımı için otomatik mülakat soruları üreten bir web uygulamasıdır. İlan analizi yaparak, pozisyon gereksinimlerine uygun kaliteli sorular üretir.
+Coğrafi Bilgi Sistemleri Genel Müdürlüğü için geliştirilmiş, yapay zeka destekli mülakat soru hazırlama sistemi.
 
 ## 🚀 Özellikler
 
-- **İlan Analizi**: İlan metnini analiz ederek genel ve özel şartları çıkarır
-- **Rol Bazlı Soru Üretimi**: Her pozisyon için özelleştirilmiş sorular
-- **AI Destekli**: OpenAI GPT-4o-mini ile kaliteli soru üretimi
-- **Çok Adımlı Süreç**: 5 adımlı wizard ile kolay kullanım
-- **Dinamik Konfigürasyon**: Soru sayısı ve zorluk seviyesi ayarlanabilir
+- **5 Adımlı Wizard Arayüzü**: Kullanıcı dostu, adım adım soru hazırlama süreci
+- **Yapay Zeka Destekli Soru Üretimi**: OpenAI GPT-4o-mini API ile kaliteli sorular
+- **Profesyonel Rubrik Modeli**: 5 katmanlı zorluk seviyesi sistemi (K1-K5)
+- **Word Dosyası İndirme**: Profesyonel formatlı mülakat soruları
+- **Responsive Tasarım**: Mobil ve masaüstü uyumlu arayüz
 
-## 🛠️ Teknolojiler
+## 📋 Sistem Gereksinimleri
 
-### Backend
-- **FastAPI**: Modern Python web framework
-- **SQLAlchemy**: ORM ve veritabanı yönetimi
-- **SQLite**: Hafif veritabanı
-- **OpenAI API**: GPT-4o-mini ile soru üretimi
-
-### Frontend
-- **React**: Modern UI framework
-- **Vite**: Hızlı build tool
-- **Axios**: HTTP client
-- **Tailwind CSS**: Styling
-
-## 📋 Kurulum
-
-### Gereksinimler
 - Python 3.8+
 - Node.js 16+
+- PostgreSQL (opsiyonel, SQLite varsayılan)
 - OpenAI API Key
+
+## 🛠️ Kurulum
 
 ### Backend Kurulumu
 
 ```bash
 cd backend
-
-# Virtual environment oluştur
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate  # Windows
+# veya
+venv\Scripts\activate  # Windows
 
-# Bağımlılıkları yükle
 pip install -r requirements.txt
-
-# Environment variable ayarla
-export OPENAI_API_KEY="your-openai-api-key-here"
-
-# Uygulamayı başlat
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -55,21 +36,77 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 cd frontend
-
-# Bağımlılıkları yükle
 npm install
-
-# Uygulamayı başlat
 npm run dev
 ```
 
-## 🎯 Kullanım
+## 🔧 Konfigürasyon
 
-1. **İlan Girişi**: İlan metnini yapıştırın
-2. **Rol Tanımlama**: Pozisyonları ve gereksinimleri belirleyin
-3. **Konfigürasyon**: Soru sayısı ve dağılımını ayarlayın
-4. **Soru Üretimi**: AI ile soruları üretin
-5. **Sonuçlar**: Üretilen soruları görüntüleyin
+### OpenAI API Key
+
+`backend/app/utils.py` dosyasında API key'i güncelleyin:
+
+```python
+client = OpenAI(
+    api_key="your-openai-api-key-here",
+    timeout=60.0,
+    max_retries=3
+)
+```
+
+## 📖 Kullanım
+
+### 1. İlan Bilgileri
+- İlan başlığı ve içeriğini girin
+- Genel şartları belirtin
+
+### 2. Rol Tanımları
+- Pozisyon adlarını ekleyin
+- Maaş katsayılarını belirleyin (2x, 3x, 4x)
+- Özel gereksinimleri tanımlayın
+
+### 3. Soru Konfigürasyonu
+- Her rol için soru sayılarını ayarlayın
+- Soru kategorilerini yapılandırın
+
+### 4. Soru Üretimi
+- Yapay zeka ile soruları üretin
+- Sonuçları önizleyin
+
+### 5. Final Seti
+- Word dosyası olarak indirin
+- Mülakat sürecinde kullanın
+
+## 🎯 Zorluk Seviyeleri
+
+### 2x - Orta Düzey Uygulayıcı
+- **Deneyim**: 2-4 yıl
+- **Odak**: Günlük operasyon, temel optimizasyon
+- **Katman Dağılımı**: K1: 30%, K2: 40%, K3: 25%, K4: 5%, K5: 0%
+
+### 3x - Kıdemli Uzman
+- **Deneyim**: 5-8 yıl
+- **Odak**: Çapraz disiplin, mentorluk, kritik problem çözümü
+- **Katman Dağılımı**: K1: 15%, K2: 25%, K3: 35%, K4: 20%, K5: 5%
+
+### 4x - Mimar/Teknik Lider
+- **Deneyim**: ≥10 yıl
+- **Odak**: Strateji, büyük ölçekli mimari, ekip yönetimi
+- **Katman Dağılımı**: K1: 5%, K2: 15%, K3: 25%, K4: 35%, K5: 20%
+
+## 🏗️ Teknik Mimari
+
+### Backend (FastAPI)
+- **Framework**: FastAPI
+- **Veritabanı**: SQLAlchemy + SQLite
+- **AI**: OpenAI GPT-4o-mini
+- **Dosya İşleme**: python-docx
+
+### Frontend (React)
+- **Framework**: React 18
+- **Build Tool**: Vite
+- **Styling**: CSS3
+- **HTTP Client**: Axios
 
 ## 📁 Proje Yapısı
 
@@ -79,59 +116,58 @@ mulakat_soru/
 │   ├── app/
 │   │   ├── main.py          # FastAPI uygulaması
 │   │   ├── models.py        # Veritabanı modelleri
-│   │   ├── database.py      # Veritabanı bağlantısı
-│   │   └── utils.py         # Yardımcı fonksiyonlar
+│   │   ├── utils.py         # AI ve yardımcı fonksiyonlar
+│   │   └── database.py      # Veritabanı bağlantısı
 │   ├── requirements.txt     # Python bağımlılıkları
-│   └── mulakat.db          # SQLite veritabanı
+│   └── venv/               # Virtual environment
 ├── frontend/
 │   ├── src/
 │   │   ├── components/      # React bileşenleri
+│   │   ├── assets/         # Resimler ve statik dosyalar
 │   │   ├── App.jsx         # Ana uygulama
-│   │   └── main.jsx        # Giriş noktası
+│   │   └── App.css         # Stiller
+│   ├── public/             # Statik dosyalar
 │   ├── package.json        # Node.js bağımlılıkları
 │   └── vite.config.js      # Vite konfigürasyonu
 └── README.md
 ```
 
-## 🔧 API Endpoints
-
-### İlan Yönetimi
-- `GET /api/step1/contract/{contract_id}` - İlan detayları
-- `POST /api/step1/save-contract` - İlan kaydetme
-
-### Rol Yönetimi
-- `GET /api/step2/roles/{contract_id}` - Rolleri listele
-- `POST /api/step2/add-role` - Rol ekleme
-- `PUT /api/step2/roles/{role_id}` - Rol güncelleme
-- `DELETE /api/step2/roles/{role_id}` - Rol silme
-
-### Konfigürasyon
-- `GET /api/step3/global-config/{contract_id}` - Global konfigürasyon
-- `POST /api/step3/save-global-config` - Global konfigürasyon kaydetme
-- `GET /api/step3/role-question-configs/{contract_id}` - Rol konfigürasyonları
-
-### Soru Üretimi
-- `POST /api/step4/generate-questions` - Soru üretimi
-- `GET /api/step4/questions/{contract_id}` - Üretilen sorular
-
 ## 🔒 Güvenlik
 
-- API anahtarları environment variable olarak saklanır
-- Veritabanı dosyası .gitignore'da
-- Hassas bilgiler kodda hardcode edilmez
+- API key'ler environment variable olarak saklanmalı
+- CORS ayarları production için yapılandırılmalı
+- Rate limiting eklenebilir
+
+## 🚀 Deployment
+
+### Backend (Production)
+```bash
+pip install gunicorn
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+```
+
+### Frontend (Production)
+```bash
+npm run build
+# dist/ klasörünü web sunucusuna deploy edin
+```
+
+## 📝 Lisans
+
+Bu proje Coğrafi Bilgi Sistemleri Genel Müdürlüğü için geliştirilmiştir.
 
 ## 🤝 Katkıda Bulunma
 
-1. Fork yapın
+1. Fork edin
 2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit yapın (`git commit -m 'Add amazing feature'`)
-4. Push yapın (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır.
+3. Commit edin (`git commit -m 'Add amazing feature'`)
+4. Push edin (`git push origin feature/amazing-feature`)
+5. Pull Request oluşturun
 
 ## 📞 İletişim
 
-Sorularınız için issue açabilirsiniz. 
+Proje Sahibi: [İletişim Bilgileri]
+
+---
+
+**Not**: Bu sistem mülakat süreçlerini standardize etmek ve kaliteli sorular üretmek amacıyla geliştirilmiştir. 
