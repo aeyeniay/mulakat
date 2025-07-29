@@ -696,13 +696,18 @@ async def generate_questions_directly(
     try:
         contract_id = request_data.get("contract_id")
         model_name = request_data.get("model_name", "gpt-4o-mini")
+        role_id = request_data.get("role_id")  # Tek rol için soru üretme
         
         # Contract ve rolleri al
         contract = db.query(Contract).filter(Contract.id == contract_id).first()
         if not contract:
             raise HTTPException(status_code=404, detail="İlan bulunamadı")
         
-        roles = db.query(Role).filter(Role.contract_id == contract_id).all()
+        # Eğer role_id belirtilmişse sadece o rolü al, yoksa tüm rolleri al
+        if role_id:
+            roles = db.query(Role).filter(Role.id == role_id, Role.contract_id == contract_id).all()
+        else:
+            roles = db.query(Role).filter(Role.contract_id == contract_id).all()
         
         all_questions = []
         
@@ -1093,6 +1098,7 @@ async def generate_word_document(
     try:
         logger.info(f"Word dosyaları oluşturma başlatıldı. Request data: {request_data}")
         contract_id = request_data.get("contract_id")
+        role_id = request_data.get("role_id")  # Tek rol için Word dosyası oluşturma
         
         if not contract_id:
             raise HTTPException(status_code=400, detail="contract_id gerekli")
@@ -1106,8 +1112,11 @@ async def generate_word_document(
         
         logger.info(f"Contract bulundu: {contract.title}")
         
-        # Rolleri al
-        roles = db.query(Role).filter(Role.contract_id == contract_id).all()
+        # Eğer role_id belirtilmişse sadece o rolü al, yoksa tüm rolleri al
+        if role_id:
+            roles = db.query(Role).filter(Role.id == role_id, Role.contract_id == contract_id).all()
+        else:
+            roles = db.query(Role).filter(Role.contract_id == contract_id).all()
         logger.info(f"Roller bulundu: {len(roles)} adet")
         
         # ZIP dosyası oluştur

@@ -3,16 +3,29 @@ import axios from 'axios';
 
 function Step4({ contractId, onNext, onPrevious }) {
     const [questions, setQuestions] = useState([]);
-    const [processing, setProcessing] = useState(false);
+    const [processing, setProcessing] = useState({});  // Her rol için ayrı processing durumu
     const [selectedModel] = useState("gpt-4o-mini");  // OpenAI GPT-4o-mini model
     const [completed, setCompleted] = useState(false);
+    const [roles, setRoles] = useState([]);  // Rolleri saklamak için
 
     useEffect(() => {
-        // Eğer daha önce sorular üretilmişse onları yükle
+        // Rolleri ve mevcut soruları yükle
         if (contractId) {
+            loadRoles();
             loadExistingQuestions();
         }
     }, [contractId]);
+
+    const loadRoles = async () => {
+        try {
+            const response = await axios.get(`/api/step2/roles/${contractId}`);
+            if (response.data.success) {
+                setRoles(response.data.roles);
+            }
+        } catch (error) {
+            console.error('Error loading roles:', error);
+        }
+    };
 
     const loadExistingQuestions = async () => {
         try {
@@ -26,32 +39,41 @@ function Step4({ contractId, onNext, onPrevious }) {
         }
     };
 
-    const generateQuestions = async () => {
-        setProcessing(true);
+    const generateQuestionsForRole = async (roleId, roleName) => {
+        setProcessing(prev => ({ ...prev, [roleId]: true }));
         try {
             const response = await axios.post('/api/step4/generate-questions', {
                 contract_id: contractId,
-                model_name: selectedModel
+                model_name: selectedModel,
+                role_id: roleId  // Sadece bu rol için soru üret
             });
 
             if (response.data.success) {
-                // Backend'den gelen veriyi düzgün formata çevir
+                // Mevcut soruları koru, yeni soruları ekle/güncelle
                 const backendQuestions = response.data.questions;
                 if (Array.isArray(backendQuestions) && backendQuestions.length > 0) {
-                    // Tüm rolleri ve sorularını sakla
-                    setQuestions(backendQuestions);
-                } else {
-                    setQuestions([]);
+                    setQuestions(prevQuestions => {
+                        // Mevcut soruları filtrele (bu rolün eski sorularını çıkar)
+                        const filteredQuestions = prevQuestions.filter(q => q.role_id !== roleId);
+                        // Yeni soruları ekle
+                        return [...filteredQuestions, ...backendQuestions];
+                    });
                 }
                 setCompleted(true);
             } else {
-                alert('Soru üretimi başarısız: ' + response.data.error);
+                alert(`${roleName} için soru üretimi başarısız: ` + response.data.error);
             }
         } catch (error) {
             console.error('Error generating questions:', error);
-            alert('Soru üretimi sırasında hata oluştu: ' + error.message);
+            alert(`${roleName} için soru üretimi sırasında hata oluştu: ` + error.message);
         } finally {
-            setProcessing(false);
+            setProcessing(prev => ({ ...prev, [roleId]: false }));
+        }
+    };
+
+    const regenerateQuestionsForRole = async (roleId, roleName) => {
+        if (window.confirm(`${roleName} için soruları yeniden üretmek istediğinizden emin misiniz?`)) {
+            await generateQuestionsForRole(roleId, roleName);
         }
     };
 
@@ -63,23 +85,15 @@ function Step4({ contractId, onNext, onPrevious }) {
         onNext(contractId);
     };
 
-    const renderQuestions = () => {
-        if (!questions || !Array.isArray(questions) || questions.length === 0) {
-            return <p>Henüz soru üretilmedi.</p>;
+    const renderQuestionsForRole = (roleId) => {
+        const roleQuestions = questions.find(q => q.role_id === roleId);
+        if (!roleQuestions) {
+            return <p>Bu rol için henüz soru üretilmedi.</p>;
         }
 
-        return questions.map((role, roleIndex) => (
-            <div key={roleIndex} className="role-questions-section">
-                <div className="role-header">
-                    <h3>{role.role_name}</h3>
-                    <div className="role-info">
-                        <span className="multiplier-badge" data-multiplier={role.salary_multiplier}>
-                            {role.salary_multiplier}x
-                        </span>
-                    </div>
-                </div>
-                
-                {role.questions && Object.entries(role.questions).map(([type, questionList]) => (
+        return (
+            <div className="role-questions-section">
+                {roleQuestions.questions && Object.entries(roleQuestions.questions).map(([type, questionList]) => (
                     <div key={type} className="question-type">
                         <h4>{type === 'professional_experience' ? 'Mesleki Deneyim' : 
                              type === 'theoretical_knowledge' ? 'Teorik Bilgi' : 
@@ -103,7 +117,7 @@ function Step4({ contractId, onNext, onPrevious }) {
                     </div>
                 ))}
             </div>
-        ));
+        );
     };
 
     return (
@@ -119,29 +133,69 @@ function Step4({ contractId, onNext, onPrevious }) {
                 <p>Sorular; belirlenen konfigürasyona göre, yüksek kaliteli doğal dil üretimi sağlayan OpenAI altyapısı üzerinden otomatik olarak oluşturulacaktır.</p>
             </div>
 
-            {!completed ? (
-                <div className="generate-section">
-                    <button 
-                        onClick={generateQuestions} 
-                        disabled={processing}
-                        className="generate-btn"
-                    >
-                        {processing ? 'Sorular ve Cevaplar Üretiliyor...' : 'Soruları ve Cevapları Üret'}
-                    </button>
-                    
-                    {processing && (
-                        <div className="processing-info">
-                            <p>⏳ Sorular üretiliyor, lütfen bekleyin...</p>
-                            <p>Bu işlem birkaç dakika sürebilir.</p>
-                        </div>
-                    )}
+            <div className="roles-section">
+                <h3>İlanlar ve Soru Üretimi</h3>
+                <div className="roles-list">
+                    {roles.map((role) => {
+                        const hasQuestions = questions.some(q => q.role_id === role.id);
+                        const isProcessing = processing[role.id];
+                        
+                        return (
+                            <div key={role.id} className="role-item">
+                                <div className="role-card">
+                                    <div className="role-header">
+                                        <h4>{role.name}</h4>
+                                        <div className="role-info">
+                                            <span className="multiplier-badge" data-multiplier={role.salary_multiplier}>
+                                                {role.salary_multiplier}x
+                                            </span>
+                                            <span className="position-count">
+                                                {role.position_count} pozisyon
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="role-actions">
+                                        {!hasQuestions ? (
+                                            <button 
+                                                onClick={() => generateQuestionsForRole(role.id, role.name)}
+                                                disabled={isProcessing}
+                                                className="generate-btn"
+                                            >
+                                                {isProcessing ? 'Üretiliyor...' : 'Soruları Üret'}
+                                            </button>
+                                        ) : (
+                                            <div className="action-buttons">
+                                                <button 
+                                                    onClick={() => regenerateQuestionsForRole(role.id, role.name)}
+                                                    disabled={isProcessing}
+                                                    className="regenerate-btn"
+                                                >
+                                                    {isProcessing ? 'Yeniden Üretiliyor...' : 'Yeniden Üret'}
+                                                </button>
+                                                <span className="status-badge success">✓ Üretildi</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {isProcessing && (
+                                        <div className="processing-info">
+                                            <p>⏳ {role.name} için sorular üretiliyor...</p>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Bu rol için üretilen soruları göster */}
+                                {hasQuestions && (
+                                    <div className="role-questions">
+                                        {renderQuestionsForRole(role.id)}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-            ) : (
-                <div className="results-section">
-                    <h3>Üretilen Sorular</h3>
-                    {renderQuestions()}
-                </div>
-            )}
+            </div>
 
             {/* Adım Aksiyonları - Her zaman görünür */}
             <div className="step-actions">

@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 function Step5({ contractId, onPrevious }) {
-    const [downloading, setDownloading] = useState(false);
+    const [downloading, setDownloading] = useState({});
     const [error, setError] = useState(null);
-    const [completed, setCompleted] = useState(false);
+    const [completed, setCompleted] = useState({});
+    const [roles, setRoles] = useState([]);
 
-    const downloadWordDocument = async () => {
-        setDownloading(true);
+    useEffect(() => {
+        if (contractId) {
+            loadRoles();
+        }
+    }, [contractId]);
+
+    const loadRoles = async () => {
+        try {
+            const response = await axios.get(`/api/step2/roles/${contractId}`);
+            if (response.data.success) {
+                setRoles(response.data.roles);
+            }
+        } catch (error) {
+            console.error('Error loading roles:', error);
+        }
+    };
+
+    const downloadWordDocumentForRole = async (roleId, roleName) => {
+        setDownloading(prev => ({ ...prev, [roleId]: true }));
         setError(null);
         
         try {
             const response = await axios.post('/api/step5/generate-word', {
-                contract_id: contractId
+                contract_id: contractId,
+                role_id: roleId  // Sadece bu rol için Word dosyası oluştur
             }, {
-                responseType: 'blob' // Dosya indirme için gerekli
+                responseType: 'blob'
             });
             
             // Dosyayı indir
@@ -24,7 +43,7 @@ function Step5({ contractId, onPrevious }) {
             
             // Dosya adını response header'dan al veya default kullan
             const contentDisposition = response.headers['content-disposition'];
-            let filename = 'mulakat_sorulari.zip';
+            let filename = `mulakat_sorulari_${roleName.replace(/\s+/g, '_')}.zip`;
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename="(.+)"/);
                 if (filenameMatch) {
@@ -39,13 +58,13 @@ function Step5({ contractId, onPrevious }) {
             window.URL.revokeObjectURL(url);
             
             // Başarılı indirme sonrası tamamlandı mesajını göster
-            setCompleted(true);
+            setCompleted(prev => ({ ...prev, [roleId]: true }));
             
         } catch (error) {
             console.error('Word dosyası indirme hatası:', error);
-            setError('Word dosyası indirilirken bir hata oluştu. Lütfen tekrar deneyin.');
+            setError(`${roleName} için Word dosyası indirilirken bir hata oluştu. Lütfen tekrar deneyin.`);
         } finally {
-            setDownloading(false);
+            setDownloading(prev => ({ ...prev, [roleId]: false }));
         }
     };
 
@@ -70,31 +89,60 @@ function Step5({ contractId, onPrevious }) {
                     <li>✓ ZIP dosyası içinde düzenli organizasyon</li>
                 </ul>
                 
-                <button 
-                    onClick={downloadWordDocument} 
-                    disabled={downloading}
-                    className="download-btn"
-                >
-                    {downloading ? 'Dosyalar Hazırlanıyor...' : 'Word Dosyalarını İndir'}
-                </button>
+                <div className="roles-download-grid">
+                    {roles.map((role) => {
+                        const isDownloading = downloading[role.id];
+                        const isCompleted = completed[role.id];
+                        
+                        return (
+                            <div key={role.id} className="role-download-card">
+                                <div className="role-header">
+                                    <h4>{role.name}</h4>
+                                    <div className="role-info">
+                                        <span className="multiplier-badge" data-multiplier={role.salary_multiplier}>
+                                            {role.salary_multiplier}x
+                                        </span>
+                                        <span className="position-count">
+                                            {role.position_count} pozisyon
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div className="download-actions">
+                                    <button 
+                                        onClick={() => downloadWordDocumentForRole(role.id, role.name)}
+                                        disabled={isDownloading}
+                                        className="download-btn"
+                                    >
+                                        {isDownloading ? 'Hazırlanıyor...' : 'Word Dosyalarını İndir'}
+                                    </button>
+                                    
+                                    {isCompleted && (
+                                        <span className="status-badge success">✓ İndirildi</span>
+                                    )}
+                                </div>
+                                
+                                {isDownloading && (
+                                    <div className="processing-info">
+                                        <p>⏳ {role.name} için Word dosyaları hazırlanıyor...</p>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
                 
                 {error && (
                     <div className="error-message">
                         <p>❌ {error}</p>
                     </div>
                 )}
-                
-                {downloading && (
-                    <div className="processing-info">
-                        <p>⏳ Word dosyaları hazırlanıyor, lütfen bekleyin...</p>
-                    </div>
-                )}
             </div>
             
-            {completed && (
+            {Object.keys(completed).length > 0 && (
                 <div className="completion-message">
                     <h3>🎉 İşlem Tamamlandı!</h3>
-                    <p>Mülakat sorularınız başarıyla oluşturuldu ve Word dosyaları olarak indirildi. ZIP dosyasını açarak aday ve jüri kitapçıklarını kullanabilirsiniz.</p>
+                    <p>Seçilen mülakat soruları başarıyla Word dosyaları olarak indirildi. ZIP dosyalarını açarak aday ve jüri kitapçıklarını kullanabilirsiniz.</p>
                 </div>
             )}
 
