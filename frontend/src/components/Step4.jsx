@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 
 function Step4({ contractId, onNext, onPrevious }) {
     const [questions, setQuestions] = useState([]);
@@ -7,6 +8,15 @@ function Step4({ contractId, onNext, onPrevious }) {
     const [selectedModel] = useState("gpt-4o-mini");  // OpenAI GPT-4o-mini model
     const [completed, setCompleted] = useState(false);
     const [roles, setRoles] = useState([]);  // Rolleri saklamak için
+    const [editModal, setEditModal] = useState({
+        isOpen: false,
+        roleId: null,
+        questionType: null,
+        questionIndex: null,
+        originalQuestion: '',
+        correctionInstruction: ''
+    });
+    const [editingQuestion, setEditingQuestion] = useState(false);
 
     useEffect(() => {
         // Rolleri ve mevcut soruları yükle
@@ -77,6 +87,80 @@ function Step4({ contractId, onNext, onPrevious }) {
         }
     };
 
+    const openEditModal = (roleId, questionType, questionIndex, originalQuestion) => {
+        console.log('Modal açılıyor:', { roleId, questionType, questionIndex, originalQuestion });
+        setEditModal({
+            isOpen: true,
+            roleId,
+            questionType,
+            questionIndex,
+            originalQuestion,
+            correctionInstruction: ''
+        });
+    };
+
+    const closeEditModal = () => {
+        setEditModal({
+            isOpen: false,
+            roleId: null,
+            questionType: null,
+            questionIndex: null,
+            originalQuestion: '',
+            correctionInstruction: ''
+        });
+    };
+
+    const handleEditQuestion = async () => {
+        if (!editModal.correctionInstruction.trim()) {
+            alert('Lütfen düzeltme talimatını girin.');
+            return;
+        }
+
+        setEditingQuestion(true);
+        try {
+            const response = await axios.post('/api/step4/regenerate-single-question', {
+                contract_id: contractId,
+                role_id: editModal.roleId,
+                question_type: editModal.questionType,
+                question_index: editModal.questionIndex,
+                correction_instruction: editModal.correctionInstruction,
+                model_name: selectedModel
+            });
+
+            if (response.data.success) {
+                // Mevcut soruları güncelle
+                setQuestions(prevQuestions => {
+                    return prevQuestions.map(role => {
+                        if (role.role_id === editModal.roleId) {
+                            return {
+                                ...role,
+                                questions: {
+                                    ...role.questions,
+                                    [editModal.questionType]: role.questions[editModal.questionType].map((q, index) => 
+                                        index === editModal.questionIndex 
+                                            ? { ...q, question: response.data.question, expected_answer: response.data.expected_answer }
+                                            : q
+                                    )
+                                }
+                            };
+                        }
+                        return role;
+                    });
+                });
+
+                closeEditModal();
+                alert('Soru başarıyla düzeltildi!');
+            } else {
+                alert('Soru düzeltme hatası: ' + response.data.error);
+            }
+        } catch (error) {
+            console.error('Error editing question:', error);
+            alert('Soru düzeltme sırasında hata oluştu: ' + error.message);
+        } finally {
+            setEditingQuestion(false);
+        }
+    };
+
     const handleNext = () => {
         if (!completed) {
             const confirmLeave = window.confirm('Sorular henüz üretilmedi. Devam etmek istiyor musunuz?');
@@ -100,16 +184,28 @@ function Step4({ contractId, onNext, onPrevious }) {
                              'Pratik Uygulama'} Soruları</h4>
                         {Array.isArray(questionList) && questionList.map((q, qIndex) => (
                             <div key={qIndex} className="question-item">
-                                <p className="question-text">
-                                    <span className="question-number">{qIndex + 1}.</span> {q.question}
-                                </p>
+                                <div className="question-header">
+                                    <p className="question-text">
+                                        <span className="question-number">{qIndex + 1}.</span> {q.question}
+                                    </p>
+                                    <div className="question-actions">
+                                        <button 
+                                            onClick={() => openEditModal(roleId, type, qIndex, q.question)}
+                                            className="edit-question-btn"
+                                            title="Soruyu düzenle"
+                                        >
+                                            ✏️ Düzenle
+                                        </button>
+                                    </div>
+                                </div>
                                 {q.expected_answer && (
                                     <div className="expected-answer">
                                         <h5>Beklenen Cevap:</h5>
-                                        <div 
-                                            className="answer-content"
-                                            dangerouslySetInnerHTML={{ __html: q.expected_answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}
-                                        />
+                                        <div className="answer-content">
+                                            <ReactMarkdown>
+                                                {q.expected_answer}
+                                            </ReactMarkdown>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -119,6 +215,8 @@ function Step4({ contractId, onNext, onPrevious }) {
             </div>
         );
     };
+
+
 
     return (
         <div className="step-container">
@@ -196,6 +294,52 @@ function Step4({ contractId, onNext, onPrevious }) {
                     })}
                 </div>
             </div>
+
+            {/* Edit Modal */}
+            {editModal.isOpen && (
+                <div className="modal-overlay">
+                    <div className="edit-modal">
+                        <div className="modal-header">
+                            <h3>Soru Düzenleme</h3>
+                            <button onClick={closeEditModal} className="close-btn">×</button>
+                        </div>
+                        
+                        <div className="modal-content">
+                            <div className="form-group">
+                                <label>Mevcut Soru:</label>
+                                <div className="original-question">
+                                    {editModal.originalQuestion}
+                                </div>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="correction-instruction">Düzeltme Talimatı:</label>
+                                <textarea
+                                    id="correction-instruction"
+                                    value={editModal.correctionInstruction}
+                                    onChange={(e) => setEditModal(prev => ({ ...prev, correctionInstruction: e.target.value }))}
+                                    placeholder="Örnek: Daha teknik olsun, DevOps süreçlerini içersin, daha detaylı olsun..."
+                                    rows="4"
+                                    className="correction-textarea"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="modal-actions">
+                            <button onClick={closeEditModal} className="btn-secondary">
+                                İptal
+                            </button>
+                            <button 
+                                onClick={handleEditQuestion}
+                                disabled={editingQuestion || !editModal.correctionInstruction.trim()}
+                                className="btn-primary"
+                            >
+                                {editingQuestion ? 'Düzeltiliyor...' : 'Düzelt'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Adım Aksiyonları - Her zaman görünür */}
             <div className="step-actions">

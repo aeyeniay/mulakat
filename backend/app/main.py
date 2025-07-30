@@ -3,7 +3,7 @@ FastAPI backend uygulaması
 """
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 import json
@@ -684,6 +684,9 @@ async def save_all_role_configs(
         raise HTTPException(status_code=500, detail=str(e))
 
 # Wizard Adım 4: Direkt soru üretimi (JSON adımı kaldırıldı)
+
+
+
 @app.post("/api/step4/generate-questions")
 async def generate_questions_directly(
     request_data: Dict[str, Any],
@@ -857,6 +860,96 @@ ZORLUK SEVİYESİ: {role_difficulty['description']}
         raise HTTPException(status_code=500, detail=str(e))
 
 # Soruları görüntüle
+@app.post("/api/step4/regenerate-single-question")
+async def regenerate_single_question(
+    request_data: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Tek bir soruyu düzeltme talimatına göre yeniden üret"""
+    from .utils import generate_corrected_question_with_4o_mini
+    from .models import Contract, Role, Question
+    
+    try:
+        contract_id = request_data.get("contract_id")
+        role_id = request_data.get("role_id")
+        question_type = request_data.get("question_type")
+        question_index = request_data.get("question_index")
+        correction_instruction = request_data.get("correction_instruction")
+        model_name = request_data.get("model_name", "gpt-4o-mini")
+        
+        if not all([contract_id, role_id, question_type, question_index is not None, correction_instruction]):
+            raise HTTPException(status_code=400, detail="Tüm parametreler gerekli")
+        
+        # Contract ve rol bilgilerini al
+        contract = db.query(Contract).filter(Contract.id == contract_id).first()
+        if not contract:
+            raise HTTPException(status_code=404, detail="İlan bulunamadı")
+        
+        role = db.query(Role).filter(Role.id == role_id, Role.contract_id == contract_id).first()
+        if not role:
+            raise HTTPException(status_code=404, detail="Rol bulunamadı")
+        
+        # Mevcut soruyu al
+        existing_questions = db.query(Question).filter(
+            Question.role_id == role_id,
+            Question.contract_id == contract_id,
+            Question.question_type == question_type
+        ).order_by(Question.id).all()
+        
+        if question_index >= len(existing_questions):
+            raise HTTPException(status_code=404, detail="Soru bulunamadı")
+        
+        original_question = existing_questions[question_index]
+        
+        # Job context hazırla
+        job_context = f"""
+İLAN BAŞLIĞI: {contract.title}
+
+GENEL ŞARTLAR:
+{contract.general_requirements or "Genel şartlar belirtilmemiş"}
+
+ROL: {role.name}
+MAAŞ KATSAYISI: {role.salary_multiplier}x
+POZİSYON SAYISI: {role.position_count}
+ÖZEL ŞARTLAR:
+{role.requirements or "Özel şartlar belirtilmemiş"}
+"""
+        
+        # Düzeltilmiş soruyu üret
+        result = generate_corrected_question_with_4o_mini(
+            model_name=model_name,
+            original_question=original_question.question_text,
+            correction_instruction=correction_instruction,
+            job_context=job_context,
+            question_type=question_type
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=f"Soru düzeltme hatası: {result.get('error', 'Bilinmeyen hata')}")
+        
+        # Veritabanını güncelle
+        original_question.question_text = result["question"]
+        original_question.expected_answer = result["expected_answer"]
+        db.commit()
+        
+        logger.info(f"Tekil soru düzeltme başarılı: Role {role.name}, Type {question_type}, Index {question_index}")
+        
+        return {
+            "success": True,
+            "question": result["question"],
+            "expected_answer": result["expected_answer"],
+            "role_id": role_id,
+            "question_type": question_type,
+            "question_index": question_index
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Tekil soru düzeltme hatası: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/step4/questions/{contract_id}")
 async def get_generated_questions(
     contract_id: int,

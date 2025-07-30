@@ -145,6 +145,7 @@ Soru ve Cevap gereksinimleri:
 - Pozisyonun özel şartlarına uygun olmalı
 - Beklenen cevap jüriyi bilgilendirici tonda yazılmalı (adayın ağzından değil)
 - Beklenen cevap şu yapıda olmalı: "Adayın [konu] hakkında [beklenen bilgi/deneyim] göstermesi beklenir. [Detaylı açıklama ve örnekler]"
+- Kod örnekleri varsa markdown kod bloğu formatında yazılmalı: ```yaml veya ```bash gibi
 - JSON formatında döndür: {{"question": "soru metni", "expected_answer": "beklenen cevap"}}
 
 Soru ve Beklenen Cevap:"""
@@ -226,6 +227,121 @@ Soru ve Beklenen Cevap:"""
             "error": str(e),
             "api_used": "openai"
         }
+
+
+def generate_corrected_question_with_4o_mini(
+    model_name: str,
+    original_question: str,
+    correction_instruction: str,
+    job_context: str,
+    question_type: str
+) -> Dict[str, Any]:
+    """
+    Tek bir soruyu düzeltme talimatına göre yeniden üret
+    """
+    logger.info("Tekil soru düzeltme başlatılıyor.")
+    
+    try:
+        # Tür isimlerini belirle
+        type_names = {
+            'professional_experience': 'Mesleki Deneyim',
+            'theoretical_knowledge': 'Teorik Bilgi',
+            'practical_application': 'Pratik Uygulama'
+        }
+        type_name = type_names.get(question_type, question_type)
+        
+        # Düzeltme prompt'u oluştur
+        prompt = f"""
+{job_context}
+
+ÖNCEKİ SORU:
+{original_question}
+
+DÜZELTME TALİMATI:
+{correction_instruction}
+
+Lütfen yukarıdaki soruyu düzeltme talimatına göre yeniden üret.
+Aynı format ve kalitede, sadece istenen değişiklikleri yap.
+
+Soru ve Cevap gereksinimleri:
+- {type_name} alanında spesifik ve detaylı bir soru olmalı
+- Beklenen cevap jüriyi bilgilendirici tonda yazılmalı (adayın ağzından değil)
+- Beklenen cevap şu yapıda olmalı: "Adayın [konu] hakkında [beklenen bilgi/deneyim] göstermesi beklenir. [Detaylı açıklama ve örnekler]"
+- Kod örnekleri varsa markdown kod bloğu formatında yazılmalı: ```yaml veya ```bash gibi
+- JSON formatında döndür: {{"question": "yeni soru", "expected_answer": "yeni cevap"}}
+
+Düzeltilmiş Soru ve Cevap:"""
+
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "Sen bir İnsan Kaynakları uzmanısın ve sözleşmeli bilişim personeli alımı için kaliteli mülakat soruları hazırlıyorsun."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.8,
+                max_tokens=1000
+            )
+            logger.info("OpenAI API response received for corrected question")
+        except Exception as api_error:
+            logger.error(f"OpenAI API error for corrected question: {str(api_error)}")
+            return {
+                "success": False,
+                "error": f"API hatası: {str(api_error)}",
+                "api_used": "openai"
+            }
+        
+        # Parse the response
+        generated_text = response.choices[0].message.content
+        
+        # Try to extract JSON from the response
+        try:
+            # Markdown code block'ları temizle
+            cleaned_text = generated_text.strip()
+            if cleaned_text.startswith('```json'):
+                cleaned_text = cleaned_text.replace('```json', '').replace('```', '').strip()
+            elif cleaned_text.startswith('```'):
+                cleaned_text = cleaned_text.replace('```', '').strip()
+            
+            # Eğer JSON formatında geldiyse parse et
+            if cleaned_text.startswith('{'):
+                question_data = json.loads(cleaned_text)
+                question_text = question_data.get('question', cleaned_text)
+                expected_answer = question_data.get('expected_answer', '')
+            else:
+                # Düz metin olarak gelirse direkt kullan
+                question_text = cleaned_text
+                expected_answer = ''
+            
+            logger.info("Tekil soru düzeltme başarıyla tamamlandı")
+            
+            return {
+                "success": True,
+                "question": question_text,
+                "expected_answer": expected_answer,
+                "api_used": "openai"
+            }
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parse hatası: {e}")
+            # JSON parse hatası durumunda düz metin olarak kullan
+            return {
+                "success": True,
+                "question": generated_text.strip(),
+                "expected_answer": '',
+                "api_used": "openai"
+            }
+    
+    except Exception as e:
+        logger.error(f"Error generating corrected question with OpenAI API: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "api_used": "openai"
+        }
+
+
+
 
 
 def format_system_info():
