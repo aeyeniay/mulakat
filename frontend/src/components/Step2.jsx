@@ -1,3 +1,59 @@
+/**
+ * MÜLAKAT SORU HAZIRLAMASI SİSTEMİ - ROL YÖNETİMİ COMPONENT'İ
+ * =============================================================
+ * 
+ * 📋 COMPONENT AMACI:
+ * Bu React component'i, mülakat sisteminde 2. adım olan rol/pozisyon tanımlama
+ * işlemlerini yönetir. Kullanıcılar bu ekranda pozisyon bilgilerini girer,
+ * maaş katsayılarını belirler ve özel gereksinimleri tanımlar.
+ * 
+ * 🎯 KAPSAM:
+ * 1. 👥 ROL YÖNETİMİ:
+ *    - Yeni rol ekleme (CRUD operations)
+ *    - Mevcut rolleri düzenleme
+ *    - Rol silme işlemleri
+ *    - Real-time validation
+ * 
+ * 2. 📊 ZORLUK SİSTEMİ:
+ *    - Maaş katsayısı seçimi (2x, 3x, 4x)
+ *    - Pozisyon sayısı belirleme
+ *    - Otomatik zorluk seviyesi gösterimi
+ * 
+ * 3. 📝 GEREKSİNİM YÖNETİMİ:
+ *    - Özel şartlar text area
+ *    - Teknoloji/beceri listesi
+ *    - Form validation
+ * 
+ * 📊 VERİ AKIŞI:
+ * GİRİŞ: contractId (parent'tan gelen ilan ID'si)
+ * İŞLEM: API çağrıları, state yönetimi, form handling
+ * ÇIKIŞ: Kaydedilmiş roller → Step 3'e geçiş
+ * 
+ * 🔧 STATE YÖNETİMİ:
+ * - roles: Mevcut roller listesi
+ * - newRole: Yeni rol form verileri
+ * - editingRole: Düzenlenen rol ID'si
+ * - editForm: Düzenleme form verileri
+ * - loading: API çağrı durumu
+ * 
+ * 📡 API ENDPOİNTLERİ:
+ * - GET /api/step2/roles/{contractId} → Rolleri getir
+ * - POST /api/step2/roles → Yeni rol ekle
+ * - PUT /api/step2/roles/{roleId} → Rol güncelle
+ * - DELETE /api/step2/roles/{roleId} → Rol sil
+ * 
+ * 🎨 UI ÖZELLİKLERİ:
+ * - Responsive card-based layout
+ * - Real-time form validation
+ * - Loading states ve error handling
+ * - Inline editing interface
+ * - Zorluk seviyesi renk kodlaması
+ * 
+ * 👨‍💻 GELIŞTIREN: AI Destekli Geliştirme
+ * 📅 TARİH: 2025
+ * 🔄 VERSİYON: 1.0.0
+ */
+
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -92,7 +148,7 @@ const Step2 = ({ contractId, onNext, onPrevious }) => {
         special_requirements: ''
       });
       
-      console.log('Role added:', response.data);
+      
     } catch (error) {
       console.error('Error adding role:', error);
       alert('Rol eklenirken hata oluştu');
@@ -155,7 +211,7 @@ const Step2 = ({ contractId, onNext, onPrevious }) => {
         special_requirements: ''
       });
       
-      console.log('Role updated:', response.data);
+      
     } catch (error) {
       console.error('Error updating role:', error);
       alert('Rol güncellenirken hata oluştu');

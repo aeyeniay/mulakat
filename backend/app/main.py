@@ -1,14 +1,66 @@
 """
-FastAPI backend uygulaması
+MÜLAKAT SORU HAZIRLAMASI SİSTEMİ - ANA API ENDPOINT'LERİ
+================================================================
+
+📋 DOSYA AMACI:
+Bu dosya, kamu kurumu sözleşmeli bilişim personeli alımı için mülakat soru hazırlama 
+sisteminin ana FastAPI backend uygulamasıdır. Sistem, ilan bilgilerinden otomatik 
+soru üretimi yapan tam kapsamlı bir web API'sidir.
+
+🎯 KAPSAM:
+- İlan yönetimi (oluşturma, düzenleme, listeleme)
+- Rol ve pozisyon tanımlamaları  
+- Soru tipi konfigürasyonları
+- AI destekli otomatik soru üretimi (OpenAI GPT-4o-mini)
+- Mülakat soruları ve cevap anahtarları
+- Word dosyası çıktı üretimi (ZIP formatında)
+- Sistem bilgileri ve model yönetimi
+
+📊 VERİ AKIŞI:
+GİRİŞ: İlan bilgileri, rol gereksinimleri, soru konfigürasyonları
+İŞLEM: AI soru üretimi, veritabanı yönetimi, dosya oluşturma
+ÇIKIŞ: JSON API yanıtları, Word/ZIP dosyaları
+
+🔧 TEKNİK BİLGİLER:
+- Framework: FastAPI 0.104.1
+- Veritabanı: SQLite (SQLAlchemy ORM)
+- AI Entegrasyonu: OpenAI GPT-4o-mini
+- Dosya İşleme: python-docx
+- Port: 8000 (default)
+
+📁 API ENDPOİNTLERİ:
+/api/step1/* - İlan yönetimi
+/api/step2/* - Rol yönetimi  
+/api/step3/* - Soru konfigürasyonu
+/api/step4/* - Soru üretimi
+/api/step5/* - Word çıktı üretimi
+/api/system/* - Sistem bilgileri
+
+⚠️  GÜVENLİK NOTU:
+OpenAI API anahtarı environment değişkeninde saklanmalıdır.
+Production ortamında CORS ayarları gözden geçirilmelidir.
+
+👨‍💻 GELIŞTIREN: AI Destekli Geliştirme
+📅 TARİH: 2025
+🔄 VERSİYON: 1.0.0
 """
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response, StreamingResponse, FileResponse
 from typing import Dict, Any
 from sqlalchemy.orm import Session
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 import json
 import time
 import logging
+import tempfile
+import os
+import zipfile
+import io
+import traceback
+import uvicorn
 
 # Logger ayarla
 logger = logging.getLogger(__name__)
@@ -16,6 +68,7 @@ logger = logging.getLogger(__name__)
 # Local imports
 from .database import engine, get_db, Base
 from .models import Contract, Role, RoleQuestionConfig, QuestionType, Question, QuestionConfig, ContractData, SystemInfo, GenerationLog
+from .utils import generate_questions_with_4o_mini, generate_corrected_question_with_4o_mini, get_available_4o_mini_models
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -86,23 +139,23 @@ def get_difficulty_level_by_multiplier(salary_multiplier: float):
 
 # Default soru tiplerini ekle
 def create_default_question_types(db: Session):
-    """Varsayılan soru tiplerini oluştur"""
+    """Varsayılan soru tiplerini oluştur - GÜNCELLENMIŞ TANIMLAR (KOD SORUSU YOK!)"""
     default_types = [
         {
-            "name": "Mesleki Tecrübe Soruları",
-            "description": "Adayın deneyim ve projelerini değerlendiren sorular",
+            "name": "Mesleki Deneyim Soruları",
+            "description": "Adayın geçmiş deneyimlerine dayalı olarak yürüttüğü projeler, karşılaştığı teknik zorluklar, ekip içi görev dağılımı ve sorumlulukları hakkında bilgi almayı hedefleyen sorular üret. Bu sorular adayın sektörde ne kadar aktif olduğunu ve benzer görevlerde ne kadar yetkinlik kazandığını ortaya koymalıdır. KOD YAZDIRMA YOK!",
             "code": "professional_experience",
             "order_index": 1
         },
         {
             "name": "Teorik Bilgi Soruları", 
-            "description": "Teknik kavramlar ve teorik bilgiyi ölçen sorular",
+            "description": "Pozisyonla doğrudan ilişkili olan kavramlar, protokoller, standartlar, sistem mimarileri veya güvenlik yaklaşımları gibi teorik konularda bilgi düzeyini ölçen sorular üret. Sorular, akademik bilgi ile sektörel uygulamalar arasında bağlantı kurmalı; örneğin bir kavramın amacı, çalışma prensibi, bileşenleri veya avantaj-dezavantajları sorgulanabilir. KOD YAZDIRMA YOK!",
             "code": "theoretical_knowledge",
             "order_index": 2
         },
         {
             "name": "Pratik Uygulama Soruları",
-            "description": "Problem çözme ve uygulama becerilerini test eden sorular", 
+            "description": "Pozisyonun gerektirdiği teknolojik bilgi ve becerilere dayanarak, adayın gerçek dünya senaryolarında çözüm üretmesini gerektiren uygulama temelli sorular üret. Bu sorular bir problem durumu, vaka analizi veya sistem yapılandırma senaryosu içerebilir. KOD YAZDIRMA YOK; çözüm stratejisi, doğru yaklaşım ve mantık ön planda.",
             "code": "practical_application",
             "order_index": 3
         }
@@ -111,6 +164,7 @@ def create_default_question_types(db: Session):
     for type_data in default_types:
         existing = db.query(QuestionType).filter(QuestionType.code == type_data["code"]).first()
         if not existing:
+            # Yeni soru tipi oluştur
             new_type = QuestionType(
                 name=type_data["name"],
                 description=type_data["description"],
@@ -118,6 +172,11 @@ def create_default_question_types(db: Session):
                 order_index=type_data["order_index"]
             )
             db.add(new_type)
+        else:
+            # Mevcut soru tipini güncelle (yeni tanımlarla)
+            existing.name = type_data["name"]
+            existing.description = type_data["description"]
+            existing.order_index = type_data["order_index"]
     
     db.commit()
 
@@ -148,7 +207,7 @@ async def health_check():
 @app.get("/api/step1/contract/{contract_id}")
 async def get_contract(contract_id: int, db: Session = Depends(get_db)):
     """İlan bilgilerini getir"""
-    from .models import Contract
+
     
     try:
         contract = db.query(Contract).filter(Contract.id == contract_id).first()
@@ -177,7 +236,7 @@ async def save_contract(
     db: Session = Depends(get_db)
 ):
     """İlan bilgilerini kaydet"""
-    from .models import Contract
+
     
     try:
         title = contract_data.get("title", "").strip()
@@ -232,7 +291,7 @@ async def save_contract(
 @app.get("/api/step2/roles/{contract_id}")
 async def get_roles(contract_id: int, db: Session = Depends(get_db)):
     """Belirli bir ilanın rollerini getir"""
-    from .models import Role
+
     
     roles = db.query(Role).filter(Role.contract_id == contract_id).all()
     
@@ -256,7 +315,7 @@ async def add_role(
     db: Session = Depends(get_db)
 ):
     """Yeni rol ekle"""
-    from .models import Role
+
     
     try:
         new_role = Role(
@@ -295,7 +354,7 @@ async def update_role(
     db: Session = Depends(get_db)
 ):
     """Rolü güncelle"""
-    from .models import Role
+
     
     try:
         role = db.query(Role).filter(Role.id == role_id).first()
@@ -332,7 +391,7 @@ async def update_role(
 @app.delete("/api/step2/roles/{role_id}")
 async def delete_role(role_id: int, db: Session = Depends(get_db)):
     """Rol sil"""
-    from .models import Role
+
     
     try:
         role = db.query(Role).filter(Role.id == role_id).first()
@@ -356,7 +415,7 @@ async def delete_role(role_id: int, db: Session = Depends(get_db)):
 @app.get("/api/step3/global-config/{contract_id}")
 async def get_global_question_config(contract_id: int, db: Session = Depends(get_db)):
     """Global sınav ayarlarını getir"""
-    from .models import QuestionConfig
+
     
     try:
         # Mevcut konfigürasyonu kontrol et
@@ -409,7 +468,7 @@ async def save_global_question_config(
     db: Session = Depends(get_db)
 ):
     """Global sınav ayarlarını kaydet ve mevcut rol konfigürasyonlarını yeniden hesapla"""
-    from .models import QuestionConfig, RoleQuestionConfig, Role
+
     
     try:
         contract_id = config_data.get("contract_id")
@@ -467,7 +526,7 @@ async def save_global_question_config(
 @app.get("/api/step3/role-question-configs/{contract_id}")
 async def get_role_question_configs(contract_id: int, db: Session = Depends(get_db)):
     """Tüm rollerin soru konfigürasyonlarını getir (yeni hesaplama mantığı ile)"""
-    from .models import Role, RoleQuestionConfig, QuestionConfig
+
     
     try:
         # Global sınav ayarlarını al
@@ -563,7 +622,7 @@ async def save_role_question_config(
     db: Session = Depends(get_db)
 ):
     """Bir role ait soru konfigürasyonunu kaydet"""
-    from .models import RoleQuestionConfig
+
     
     try:
         role_id = config_data.get("role_id")
@@ -620,7 +679,7 @@ async def save_all_role_configs(
     db: Session = Depends(get_db)
 ):
     """Tüm rollerin soru konfigürasyonlarını toplu kaydet"""
-    from .models import RoleQuestionConfig
+
     
     try:
         contract_id = configs_data.get("contract_id")
@@ -694,7 +753,7 @@ async def generate_questions_directly(
 ):
     """Genel şartlar, özel şartlar ve konfigürasyona göre direkt soru üret"""
     from .utils import generate_questions_with_4o_mini
-    from .models import Contract, Role, RoleQuestionConfig, QuestionType, Question
+
     
     try:
         contract_id = request_data.get("contract_id")
@@ -809,6 +868,12 @@ ZORLUK SEVİYESİ: {role_difficulty['description']}
             )
             
             if questions_result["success"]:
+                # ÖNCE ESKİ SORULARI SİL (Bug Fix!)
+                db.query(Question).filter(
+                    Question.role_id == role.id,
+                    Question.contract_id == contract_id
+                ).delete()
+                
                 # Soruları veritabanına kaydet
                 questions = questions_result["questions"]
                 for question_type, question_list in questions.items():
@@ -867,7 +932,7 @@ async def regenerate_single_question(
 ):
     """Tek bir soruyu düzeltme talimatına göre yeniden üret"""
     from .utils import generate_corrected_question_with_4o_mini
-    from .models import Contract, Role, Question
+
     
     try:
         contract_id = request_data.get("contract_id")
@@ -956,7 +1021,7 @@ async def get_generated_questions(
     db: Session = Depends(get_db)
 ):
     """Üretilen soruları getir"""
-    from .models import Question, Role, Contract
+
     
     try:
         # Contract kontrolü
@@ -1156,7 +1221,7 @@ async def delete_question_type(
 @app.get("/api/system/4o-mini-models")
 async def get_4o_mini_models():
     """Mevcut 4o mini modellerini getir"""
-    from .utils import get_available_4o_mini_models
+
     
     try:
         models = get_available_4o_mini_models()
@@ -1171,16 +1236,8 @@ async def get_4o_mini_models():
             "models": []
         }
 
-# Eski Step 3 endpoint'lerini kaldır veya yorum yap
-# Sistem bilgileri ve soru üretimi sonraki adımlarda kullanılacak
-
 # Word dosyası oluşturma endpoint'i
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from fastapi.responses import FileResponse
-import tempfile
-import os
+
 
 @app.post("/api/step5/generate-word")
 async def generate_word_document(
@@ -1260,12 +1317,12 @@ async def generate_word_document(
                     doc_s.add_heading('İlan Bilgileri', level=1)
                     doc_s.add_paragraph(f'İlan Adı: {contract.title}')
                     doc_s.add_paragraph(f'Oluşturulma Tarihi: {contract.created_at.strftime("%d.%m.%Y") if contract.created_at else "Belirtilmemiş"}')
-                    doc_s.add_paragraph(f'Pozisyon: {role.name} ({role.salary_multiplier}x)')
+                    doc_s.add_paragraph(f'Pozisyon: {role.name} ({int(role.salary_multiplier)}x)')
                     doc_s.add_paragraph(f'Aday No: {candidate_num}')
                     doc_s.add_paragraph()
                     
                     # Bu aday için soruları ekle
-                    role_title = f"{role.name} (Aylık brüt sözleşme ücret tavanının {role.salary_multiplier} katına kadar)"
+                    role_title = f"{role.name} (Aylık brüt sözleşme ücret tavanının {int(role.salary_multiplier)} katına kadar)"
                     doc_s.add_heading(role_title, level=2)
                     
                     for q_type, q_list in questions_by_type.items():
@@ -1281,7 +1338,7 @@ async def generate_word_document(
                     safe_role_name = role.name.replace("Ş", "S").replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O").replace("Ü", "U").replace("ş", "s").replace("ç", "c").replace("ğ", "g").replace("ı", "i").replace("ö", "o").replace("ü", "u")
                     
                     # Soru dosyasını ZIP'e ekle
-                    s_filename = f"{safe_role_name} {role.salary_multiplier}x S{candidate_num}.docx"
+                    s_filename = f"{safe_role_name} {int(role.salary_multiplier)}x S{candidate_num}.docx"
                     s_buffer = io.BytesIO()
                     doc_s.save(s_buffer)
                     s_buffer.seek(0)
@@ -1297,7 +1354,7 @@ async def generate_word_document(
                     doc_c.add_heading('İlan Bilgileri', level=1)
                     doc_c.add_paragraph(f'İlan Adı: {contract.title}')
                     doc_c.add_paragraph(f'Oluşturulma Tarihi: {contract.created_at.strftime("%d.%m.%Y") if contract.created_at else "Belirtilmemiş"}')
-                    doc_c.add_paragraph(f'Pozisyon: {role.name} ({role.salary_multiplier}x)')
+                    doc_c.add_paragraph(f'Pozisyon: {role.name} ({int(role.salary_multiplier)}x)')
                     doc_c.add_paragraph(f'Aday No: {candidate_num}')
                     doc_c.add_paragraph()
                     
@@ -1318,7 +1375,7 @@ async def generate_word_document(
                             doc_c.add_paragraph()
                     
                     # Cevap dosyasını ZIP'e ekle
-                    c_filename = f"{safe_role_name} {role.salary_multiplier}x C{candidate_num}.docx"
+                    c_filename = f"{safe_role_name} {int(role.salary_multiplier)}x C{candidate_num}.docx"
                     c_buffer = io.BytesIO()
                     doc_c.save(c_buffer)
                     c_buffer.seek(0)
@@ -1330,22 +1387,22 @@ async def generate_word_document(
         
         logger.info("ZIP dosyası oluşturuldu, Response döndürülüyor...")
         
-        # Türkçe karakterleri temizle
-        safe_title = contract.title.replace(" ", "_").replace("Ş", "S").replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O").replace("Ü", "U").replace("ş", "s").replace("ç", "c").replace("ğ", "g").replace("ı", "i").replace("ö", "o").replace("ü", "u")
+        # ZIP dosyası ismi için rol adını temizle
+        safe_role_name_zip = role.name.replace(" ", "_").replace("Ş", "S").replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O").replace("Ü", "U").replace("ş", "s").replace("ç", "c").replace("ğ", "g").replace("ı", "i").replace("ö", "o").replace("ü", "u")
         
         # ZIP dosyasını döndür
         return Response(
             content=zip_buffer.getvalue(),
             media_type='application/zip',
             headers={
-                'Content-Disposition': f'attachment; filename="mulakat_sorulari_{safe_title}_{contract_id}.zip"'
+                'Content-Disposition': f'attachment; filename="{safe_role_name_zip}_{int(role.salary_multiplier)}x.zip"'
             }
         )
         
     except Exception as e:
         logger.error(f"Word dosyaları oluşturma hatası: {str(e)}")
         logger.error(f"Hata detayı: {type(e).__name__}")
-        import traceback
+    
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 

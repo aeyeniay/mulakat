@@ -85,6 +85,7 @@ function App() {
           <div className="logo-section">
             <img src={logoImage} alt="Logo" className="logo" />
             <div className="institution-name">Coğrafi Bilgi Sistemleri Genel Müdürlüğü</div>
+            <div className="department-name">Yapay Zeka ve Yenilikçi Teknolojiler Daire Başkanlığı</div>
           </div>
           <h1>Sözleşmeli Personel Alımı – Mülakat Sorusu Hazırlama Arayüzü</h1>
           <div className="step-indicator">

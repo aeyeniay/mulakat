@@ -21,18 +21,13 @@ const Step1 = ({ onNext }) => {
         general_requirements: formData.general_requirements
       };
       
-      console.log('Sending request:', requestData);
-      
       const response = await axios.post('http://localhost:8000/api/step1/save-contract', requestData);
-      
-      console.log('Response:', response.data);
       
       if (response.data.success === false && response.data.warning) {
         // Uyarı göster
         setWarning(response.data);
       } else if (response.data.success === true) {
         // Başarılı - sonraki adıma geç
-        console.log('Contract created successfully:', response.data.contract);
         onNext(response.data.contract.id);
       } else {
         // Beklenmeyen durum

@@ -1,5 +1,73 @@
 """
-Veritabanı modelleri
+MÜLAKAT SORU HAZIRLAMASI SİSTEMİ - VERİTABANI MODELLERİ
+========================================================
+
+📋 DOSYA AMACI:
+Bu dosya, mülakat soru hazırlama sisteminin tüm veritabanı modellerini içerir.
+SQLAlchemy ORM kullanarak ilişkisel veritabanı yapısını tanımlar ve
+iş mantığı property'lerini sağlar.
+
+🎯 KAPSAM:
+1. 📄 İLAN YÖNETİMİ:
+   - Contract: İlan bilgileri ve genel şartlar
+   - ContractData: Ayrıştırılmış JSON verileri
+
+2. 👥 ROL YÖNETİMİ:  
+   - Role: Pozisyon tanımları ve maaş katsayıları
+   - Difficulty level hesaplamaları (2x, 3x, 4x)
+
+3. ❓ SORU SİSTEMİ:
+   - QuestionType: Dinamik soru tipi tanımları
+   - RoleQuestionConfig: Rol bazlı soru konfigürasyonları
+   - Question: Üretilmiş sorular ve cevap anahtarları
+
+4. ⚙️ SİSTEM YÖNETİMİ:
+   - QuestionConfig: Global sınav ayarları
+   - SystemInfo: GPU/API durum bilgileri
+   - GenerationLog: Soru üretim logları
+
+📊 VERİ İLİŞKİLERİ:
+Contract (1) ←→ (N) Role ←→ (N) RoleQuestionConfig ←→ (1) QuestionType
+Contract (1) ←→ (N) Question
+Role (1) ←→ (N) Question
+
+🔧 ÖZELLİKLER:
+1. 📈 DİNAMİK ZORLUK SİSTEMİ:
+   - Maaş katsayısına göre otomatik zorluk seviyesi
+   - K1-K5 rubrik dağılımı property'leri
+   - Bloom/Dreyfus taxonomy entegrasyonu
+
+2. 🎯 SORU TİPİ YÖNETİMİ:
+   - Aktif/pasif soru tipi kontrolü
+   - Sıralama sistemi (order_index)
+   - Dinamik kategori ekleme/çıkarma
+
+3. 📊 METRİK TAKİBİ:
+   - Soru üretim süreleri
+   - API kullanım istatistikleri
+   - Sistem performans logları
+
+⚙️ TEKNİK BİLGİLER:
+- ORM: SQLAlchemy 2.0.23
+- Veritabanı: SQLite (geliştirme), PostgreSQL uyumlu
+- Encoding: UTF-8 (Türkçe karakter desteği)
+- Timestamp: UTC timezone
+- JSON fields: PostgreSQL JSON/SQLite TEXT
+
+🏗️ TABLO YAPISI:
+- contracts (ilanlar)
+- roles (roller/pozisyonlar)  
+- question_types (soru tipleri)
+- role_question_configs (rol-soru konfigürasyonları)
+- questions (üretilmiş sorular)
+- question_configs (global ayarlar)
+- contract_data (ayrıştırılmış veriler)
+- system_info (sistem bilgileri)
+- generation_logs (üretim logları)
+
+👨‍💻 GELIŞTIREN: AI Destekli Geliştirme
+📅 TARİH: 2025
+🔄 VERSİYON: 1.0.0
 """
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Boolean, Float, JSON
 from sqlalchemy.orm import relationship
@@ -35,112 +103,116 @@ class Role(Base):
 
     @property
     def difficulty_level(self):
-        """Maaş katsayısına göre zorluk seviyesi belirle - 5 Katmanlı Model"""
+        """Maaş katsayısına göre zorluk seviyesi belirle - Güncellenmiş Model (KOD SORUSU YOK!)"""
         if self.salary_multiplier <= 2:
             return {
-                "level": "temel",
-                "name": "🟢 ORTA DÜZEY UZMAN (2x)",
-                "description": "2-4 yıl tecrübe - Günlük operasyonu eksiksiz yürütme, temel optimizasyon",
-                "experience_years": "2-4 yıl",
-                "focus": "İşe hazır teknik beceri, temel araçlar ve çerçevelerde yetkinlik",
+                "level": "2x",
+                "name": "🟢 UZMAN DÜZEYİ (2x - Orta Seviye)",
+                "description": "3 Yıl Deneyim - Temel kavramsal bilgi, yaygın teknolojilerin kullanımı ve bilinen problemlere çözüm yolları. KOD SORUSU SORULMAZ!",
+                "experience_years": "3 yıl",
+                "focus": "Tanım yapma, açıklama, basit konfigürasyon veya kullanım örnekleri. Kod yazdırma kesinlikle yasak!",
                 "katman_dagilimi": {
-                    "K1_Temel_Bilgi": 30,      # Tanım, sözdizimi, kavram
-                    "K2_Uygulamali": 40,        # Küçük kod-konfig yazma, CLI komutu
-                    "K3_Hata_Cozumleme": 25,    # Gerçek log/kod verip sorun bulma
-                    "K4_Tasarim": 5,            # Komponent diyagramı, basit mimari
-                    "K5_Stratejik": 0           # Trade-off analizi, roadmap
+                    "K1_Temel_Bilgi": 40,      # Tanım, kavram, açıklama
+                    "K2_Uygulamali": 35,        # Konfigürasyon, kullanım (KOD DEĞİL!)
+                    "K3_Hata_Cozumleme": 20,    # Log analizi, sorun tespiti (KOD DEĞİL!)
+                    "K4_Tasarim": 5,            # Basit yaklaşım önerileri
+                    "K5_Stratejik": 0           # Yok
                 },
-                "bloom_seviyesi": "Remember/Apply",
-                "dreyfus_seviyesi": "Novice/Advanced Beginner"
+                "bloom_seviyesi": "Remember/Understand/Apply",
+                "dreyfus_seviyesi": "Advanced Beginner/Competent",
+                "no_code_rule": "KESİNLİKLE KOD YAZDIRMA SORULARI SORULMASUN!"
             }
         elif self.salary_multiplier <= 3:
             return {
-                "level": "orta", 
-                "name": "🟡 KIDEMLI UZMAN (3x)",
-                "description": "5-8 yıl tecrübe - Çapraz disiplinde hâkimiyet, mentorluk, kritik problem çözümü",
-                "experience_years": "5-8 yıl",
-                "focus": "Tasarım kalıpları, mimari kararlar, performans optimizasyonu, mentorluk",
+                "level": "3x", 
+                "name": "🟡 KIDEMLİ UZMAN DÜZEYİ (3x - İleri Seviye)",
+                "description": "5 Yıl Deneyim - İleri seviye teknik bilgi, sistemler arası ilişkileri anlama ve problem çözme yetkinliği. KOD SORUSU SORULMAZ!",
+                "experience_years": "5 yıl",
+                "focus": "Log inceleme, sistem yapılandırma hatalarını analiz etme, farklı çözümler arasında tercih yapma. Kod yazdırma kesinlikle yasak!",
                 "katman_dagilimi": {
-                    "K1_Temel_Bilgi": 15,      # Temel kavramlar
-                    "K2_Uygulamali": 25,        # Gelişmiş uygulama
-                    "K3_Hata_Cozumleme": 35,    # Kritik problem çözümü
-                    "K4_Tasarim": 20,           # Mimari tasarım, best-practice
-                    "K5_Stratejik": 5           # Stratejik kararlar
+                    "K1_Temel_Bilgi": 25,      # İleri kavramlar
+                    "K2_Uygulamali": 30,        # Gelişmiş konfigürasyon (KOD DEĞİL!)
+                    "K3_Hata_Cozumleme": 30,    # Sistem hatası analizi (KOD DEĞİL!)
+                    "K4_Tasarim": 15,           # Çözüm karşılaştırması
+                    "K5_Stratejik": 0           # Tasarım ve stratejik sorular YOK!
                 },
                 "bloom_seviyesi": "Analyze/Evaluate",
-                "dreyfus_seviyesi": "Competent/Proficient"
+                "dreyfus_seviyesi": "Competent/Proficient",
+                "no_code_rule": "KESİNLİKLE KOD YAZDIRMA SORULARI SORULMASUN!"
             }
         elif self.salary_multiplier <= 4:
             return {
-                "level": "ileri",
-                "name": "🟠 MİMAR/TEKNİK LİDER (4x)", 
-                "description": "8-10 yıl tecrübe - Strateji, büyük ölçekli mimari, metodoloji, ekip & süreç yönetimi",
-                "experience_years": "8-10 yıl", 
-                "focus": "Sistem mimarisi, scalability, güvenlik, team leadership, stratejik planlama",
+                "level": "4x",
+                "name": "🟠 TAKIM LİDERİ / STRATEJİK UZMAN DÜZEYİ (4x - Yüksek Seviye)", 
+                "description": "7+ Yıl Deneyim - Yüksek seviye teknik liderlik, stratejik karar alma ve mimari tasarım yetkinlikleri. KOD SORUSU SORULMAZ!",
+                "experience_years": "7+ yıl", 
+                "focus": "Sistem mimarisi tasarımı, teknoloji alternatiflerinin karşılaştırılması, ekip süreçlerinin iyileştirilmesi. Kod yazdırma kesinlikle yasak!",
                 "katman_dagilimi": {
-                    "K1_Temel_Bilgi": 5,       # Minimal temel
-                    "K2_Uygulamali": 15,        # İleri uygulama
-                    "K3_Hata_Cozumleme": 25,    # Kompleks problem çözümü
-                    "K4_Tasarim": 35,           # Büyük ölçekli mimari tasarım
-                    "K5_Stratejik": 20          # Stratejik kararlar, roadmap
+                    "K1_Temel_Bilgi": 10,       # Minimal temel
+                    "K2_Uygulamali": 20,        # Stratejik uygulama yaklaşımları (KOD DEĞİL!)
+                    "K3_Hata_Cozumleme": 25,    # Kompleks sistem problemleri (KOD DEĞİL!)
+                    "K4_Tasarim": 30,           # Mimari tasarım, teknoloji seçimi
+                    "K5_Stratejik": 15          # Karar gerekçeleri, süreç iyileştirme
                 },
                 "bloom_seviyesi": "Evaluate/Create",
-                "dreyfus_seviyesi": "Proficient/Expert"
+                "dreyfus_seviyesi": "Proficient/Expert",
+                "no_code_rule": "KESİNLİKLE KOD YAZDIRMA SORULARI SORULMASUN!"
             }
-        else:  # 5x ve üzeri
+        else:  # 5x ve üzeri (eski sistem için koruma)
             return {
-                "level": "uzman",
+                "level": "5x+",
                 "name": "🔴 ENTERPRISE UZMAN (5x+)",
-                "description": "10+ yıl tecrübe - Enterprise mimari, strategik kararlar, teknoloji liderliği, global ölçek",
+                "description": "10+ yıl tecrübe - Enterprise mimari, strategik kararlar, teknoloji liderliği. KOD SORUSU SORULMAZ!",
                 "experience_years": "10+ yıl",
-                "focus": "Enterprise architecture, strategic decisions, innovation, global governance",
+                "focus": "Enterprise architecture, strategic decisions, innovation. Kod yazdırma kesinlikle yasak!",
                 "katman_dagilimi": {
-                    "K1_Temel_Bilgi": 0,       # Minimal
-                    "K2_Uygulamali": 10,        # Stratejik uygulama
+                    "K1_Temel_Bilgi": 5,       # Minimal
+                    "K2_Uygulamali": 15,        # Stratejik uygulama
                     "K3_Hata_Cozumleme": 20,    # Enterprise problem çözümü
                     "K4_Tasarim": 30,           # Enterprise mimari tasarım
-                    "K5_Stratejik": 40          # Stratejik liderlik, roadmap
+                    "K5_Stratejik": 30          # Stratejik liderlik, roadmap
                 },
                 "bloom_seviyesi": "Create",
-                "dreyfus_seviyesi": "Expert"
+                "dreyfus_seviyesi": "Expert",
+                "no_code_rule": "KESİNLİKLE KOD YAZDIRMA SORULARI SORULMASUN!"
             }
 
     @property 
     def question_difficulty_distribution(self):
-        """Zorluk seviyesine göre soru dağılımı - 5 Katmanlı Model"""
+        """Zorluk seviyesine göre soru dağılımı - Güncellenmiş Model (KOD SORUSU YOK!)"""
         difficulty = self.difficulty_level
         
-        if difficulty["level"] == "temel":  # 2x
+        if difficulty["level"] == "2x":  # Uzman Düzeyi
             return {
-                "K1_Temel_Bilgi": 30,      # Tanım, sözdizimi, kavram
-                "K2_Uygulamali": 40,        # Küçük kod-konfig yazma, CLI komutu
-                "K3_Hata_Cozumleme": 25,    # Gerçek log/kod verip sorun bulma
-                "K4_Tasarim": 5,            # Komponent diyagramı, basit mimari
-                "K5_Stratejik": 0           # Trade-off analizi, roadmap
+                "K1_Temel_Bilgi": 40,      # Tanım, kavram, açıklama (KOD YOK!)
+                "K2_Uygulamali": 35,        # Konfigürasyon, kullanım (KOD YOK!)
+                "K3_Hata_Cozumleme": 20,    # Log analizi, sorun tespiti (KOD YOK!)
+                "K4_Tasarim": 5,            # Basit yaklaşım önerileri
+                "K5_Stratejik": 0           # YOK
             }
-        elif difficulty["level"] == "orta":  # 3x
+        elif difficulty["level"] == "3x":  # Kıdemli Uzman Düzeyi
             return {
-                "K1_Temel_Bilgi": 15,      # Temel kavramlar
-                "K2_Uygulamali": 25,        # Gelişmiş uygulama
-                "K3_Hata_Cozumleme": 35,    # Kritik problem çözümü
-                "K4_Tasarim": 20,           # Mimari tasarım, best-practice
-                "K5_Stratejik": 5           # Stratejik kararlar
+                "K1_Temel_Bilgi": 25,      # İleri kavramlar
+                "K2_Uygulamali": 30,        # Gelişmiş konfigürasyon (KOD YOK!)
+                "K3_Hata_Cozumleme": 30,    # Sistem hatası analizi (KOD YOK!)
+                "K4_Tasarim": 15,           # Çözüm karşılaştırması
+                "K5_Stratejik": 0           # Tasarım ve stratejik sorular YOK!
             }
-        elif difficulty["level"] == "ileri":  # 4x
+        elif difficulty["level"] == "4x":  # Takım Lideri / Stratejik Uzman
             return {
-                "K1_Temel_Bilgi": 5,       # Minimal temel
-                "K2_Uygulamali": 15,        # İleri uygulama
-                "K3_Hata_Cozumleme": 25,    # Kompleks problem çözümü
-                "K4_Tasarim": 35,           # Büyük ölçekli mimari tasarım
-                "K5_Stratejik": 20          # Stratejik kararlar, roadmap
+                "K1_Temel_Bilgi": 10,       # Minimal temel
+                "K2_Uygulamali": 20,        # Stratejik uygulama yaklaşımları (KOD YOK!)
+                "K3_Hata_Cozumleme": 25,    # Kompleks sistem problemleri (KOD YOK!)
+                "K4_Tasarim": 30,           # Mimari tasarım, teknoloji seçimi
+                "K5_Stratejik": 15          # Karar gerekçeleri, süreç iyileştirme
             }
-        else:  # uzman (5x+)
+        else:  # 5x+ (eski sistem için koruma)
             return {
-                "K1_Temel_Bilgi": 0,       # Minimal
-                "K2_Uygulamali": 10,        # Stratejik uygulama
-                "K3_Hata_Cozumleme": 20,    # Enterprise problem çözümü
+                "K1_Temel_Bilgi": 5,       # Minimal
+                "K2_Uygulamali": 15,        # Stratejik uygulama (KOD YOK!)
+                "K3_Hata_Cozumleme": 20,    # Enterprise problem çözümü (KOD YOK!)
                 "K4_Tasarim": 30,           # Enterprise mimari tasarım
-                "K5_Stratejik": 40          # Stratejik liderlik, roadmap
+                "K5_Stratejik": 30          # Stratejik liderlik, roadmap
             }
 
 class QuestionType(Base):

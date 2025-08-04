@@ -42,13 +42,20 @@
 .institution-name {
   color: white;
   font-weight: bold;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+.department-name {
+  color: white;
+  font-weight: bold;
+  font-size: 1.4rem;
   text-align: center;
 }
 
 .app-header h1 {
   margin: 0 0 0.25rem 0;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
 }
 
 /* Step indicator */
@@ -3468,6 +3475,26 @@
   font-family: 'Courier New', monospace;
   font-size: 0.85rem;
   line-height: 1.3;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border-left: 4px solid #007bff;
+}
+
+/* Syntax Highlighter için özel stiller */
+.answer-content .react-syntax-highlighter {
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+
+.answer-content .react-syntax-highlighter pre {
+  background: #2d3748 !important;
+  border: none !important;
+  border-left: 4px solid #007bff !important;
+  border-radius: 6px !important;
+  padding: 1rem !important;
+  margin: 0 !important;
 }
 
 .answer-content code {
@@ -3476,6 +3503,8 @@
   border-radius: 3px;
   font-family: 'Courier New', monospace;
   font-size: 0.85rem;
+  display: inline-block;
+  border: 1px solid #e9ecef;
 }
 
 .answer-content p {
@@ -3492,6 +3521,9 @@
 .answer-content pre code {
   background: none;
   padding: 0;
+  display: block;
+  white-space: pre;
+  border: none;
 }
 
 /* Modal Styles */

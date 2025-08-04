@@ -1,6 +1,35 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-sqlalchemy==2.0.23
-python-multipart==0.0.6
-pydantic==2.5.0
-openai==1.3.0 
+# MÜLAKAT SORU HAZIRLAMASI SİSTEMİ - PYTHON PAKETLERİ
+# ======================================================
+#
+# 📋 DOSYA AMACI:
+# Backend uygulaması için gerekli Python paketlerini ve versiyonlarını tanımlar.
+# Production ortamında sabit versiyon numaraları kullanarak tutarlılık sağlar.
+#
+# 🎯 PAKET KATEGORİLERİ:
+# 1. 🌐 WEB FRAMEWORK: FastAPI + Uvicorn ASGI server
+# 2. 🗄️ VERİTABANI: SQLAlchemy ORM + Pydantic validation
+# 3. 🤖 AI ENTEGRASYON: OpenAI GPT API
+# 4. 📄 DOSYA İŞLEME: python-docx Word belgesi oluşturma
+# 5. ⚙️ KONFIGÜRASYON: python-dotenv environment yönetimi
+# 6. 📤 FORM İŞLEME: python-multipart file upload desteği
+#
+# 🚀 KURULUM: pip install -r requirements.txt
+# 👨‍💻 GELIŞTIREN: AI Destekli Geliştirme
+
+# Web Framework ve ASGI Server
+fastapi==0.104.1          # Modern, hızlı web framework (async/await desteği)
+uvicorn==0.24.0           # Lightning-fast ASGI server
+
+# Veritabanı ve ORM
+sqlalchemy==2.0.23        # Python SQL toolkit ve ORM
+pydantic==2.5.0           # Data validation ve settings management
+
+# AI ve API Entegrasyonu  
+openai==1.3.0             # OpenAI GPT API client (soru üretimi için)
+
+# Dosya İşleme
+python-docx==1.1.0        # Microsoft Word belge oluşturma
+
+# Konfigürasyon ve Yardımcılar
+python-dotenv==1.0.0      # Environment değişken yönetimi
+python-multipart==0.0.6   # Form data ve file upload desteği 

@@ -224,7 +224,7 @@ const Step3 = ({ contractId, onNext, onPrevious }) => {
                       onChange={(e) => handleQuestionTypeDistributionChange(questionType.code, e.target.value)}
                       className="distribution-input"
                     />
-                    <small>{questionType.description}</small>
+
                   </div>
                 ))}
               </div>
