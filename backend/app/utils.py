@@ -450,21 +450,12 @@ DÜZELTME TALİMATI:
 
 Lütfen yukarıdaki soruyu düzeltme talimatına göre yeniden üret.
 Aynı format ve kalitede, sadece istenen değişiklikleri yap.
+Kod soruları 2 tipte olsun. 1. tip kodun ne işe yaradığı olabilir. 2. tip ise kodda ki hatayı bulma sorusu olabilir. 
 
-🚫 KRİTİK KURAL: KESİNLİKLE KOD YAZDIRMA SORUSU SORMA! 🚫
-Bu kurala uymazsan soru reddedilecek!
-
-🚫 YASAK OLAN SORULAR:
-- "Şu kodu yazın/tamamlayın..."
-- "Bu fonksiyonu implement edin..."
-- "Kod örneği verin..."
-- "Bu algoritmayı kodlayın..."
-- "Script yazın..."
 
 Soru ve Cevap gereksinimleri:
 - Özel şartlardan BİR TEK KONU seçerek {type_name} alanında spesifik soru sor
 - Eğer düzeltme talimatında konu belirtilmişse o konuya odaklan
-- KESİNLİKLE KOD YAZDIRMA SORULMAYACAK!
 - Beklenen cevap jüriyi bilgilendirici tonda yazılmalı (adayın ağzından değil)
 - Beklenen cevap şu yapıda olmalı: "Adayın [seçilen konu] hakkında [beklenen bilgi/deneyim] göstermesi beklenir. [Detaylı açıklama ve örnekler]"
 - Beklenen cevabın sonuna bir satır boşluk bırakarak anahtar kelimeleri ekle
@@ -480,7 +471,7 @@ Düzeltilmiş Soru ve Cevap:"""
             response = client.chat.completions.create(
                 model=model_name,
                 messages=[
-                    {"role": "system", "content": "Sen bir İnsan Kaynakları uzmanısın ve sözleşmeli bilişim personeli alımı için kaliteli mülakat soruları hazırlıyorsun. KRİTİK KURAL: KESİNLİKLE KOD YAZDIRMA SORUSU SORMA! Sadece kavramsal, deneyimsel ve teorik sorular sor."},
+                    {"role": "system", "content": "Sen bir İnsan Kaynakları uzmanısın ve sözleşmeli bilişim personeli alımı için kaliteli mülakat soruları hazırlıyorsun. Kavramsal, deneyimsel ve teorik sorular sor."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.8,
