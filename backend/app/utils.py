@@ -128,7 +128,7 @@ def get_active_question_types():
 
 # OpenAI API configuration
 client = OpenAI(
-    api_key="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",
+    api_key="your_api_key_here",
     timeout=60.0,
     max_retries=3
 )
