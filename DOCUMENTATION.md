@@ -1,56 +1,56 @@
-# 📚 MÜLAKAT SORU HAZIRLAMASI SİSTEMİ - DOKÜMANTASYON REHBERİ
+# 📚 INTERVIEW QUESTION PREPARATION SYSTEM - DOCUMENTATION GUIDE
 
-## 🎯 GENEL BAKIŞ
+## 🎯 OVERVIEW
 
-Bu dokümantasyon, sistemdeki her dosyanın amacını, kapsamını ve teknik detaylarını açıklamaktadır.
+This documentation explains the purpose, scope, and technical details of each file in the system.
 
-## 📁 DOSYA STRUKTüRÜ VE DOKÜMANTASYON
+## 📁 FILE STRUCTURE AND DOCUMENTATION
 
 ### 🖥️ BACKEND (Python/FastAPI)
 
 #### 📄 `backend/app/main.py`
-- **Amaç**: Ana API endpoint'leri ve iş mantığı
-- **Kapsam**: 37 API endpoint, CORS konfigürasyonu, routing
-- **Giriş**: HTTP istekleri, JSON veriler
-- **Çıkış**: JSON yanıtları, Word/ZIP dosyaları
-- **Satır Sayısı**: 1,370 satır
+- **Purpose**: Main API endpoints and business logic
+- **Scope**: 37 API endpoints, CORS configuration, routing
+- **Input**: HTTP requests, JSON data
+- **Output**: JSON responses, Word/ZIP files
+- **Lines of Code**: 1,370
 
-#### 🔧 `backend/app/utils.py`  
-- **Amaç**: AI entegrasyonu ve yardımcı fonksiyonlar
-- **Kapsam**: OpenAI API, soru üretimi, JSON parse, zorluk sistemi
-- **Giriş**: İlan verileri, rol konfigürasyonları
-- **Çıkış**: Üretilmiş sorular ve cevap anahtarları
-- **Satır Sayısı**: 550 satır
+#### 🔧 `backend/app/utils.py`
+- **Purpose**: AI integration and helper functions
+- **Scope**: OpenAI API, question generation, JSON parsing, difficulty system
+- **Input**: Job posting data, role configurations
+- **Output**: Generated questions and answer keys
+- **Lines of Code**: 550
 
 #### 🗄️ `backend/app/models.py`
-- **Amaç**: Veritabanı modelleri ve ilişkiler
-- **Kapsam**: 9 SQLAlchemy modeli, property'ler, ilişkiler
-- **Giriş**: ORM sorgular
-- **Çıkış**: Database nesneleri
-- **Satır Sayısı**: 294 satır
+- **Purpose**: Database models and relationships
+- **Scope**: 9 SQLAlchemy models, properties, relationships
+- **Input**: ORM queries
+- **Output**: Database objects
+- **Lines of Code**: 294
 
 #### 🔗 `backend/app/database.py`
-- **Amaç**: Veritabanı bağlantı yönetimi
-- **Kapsam**: SQLAlchemy engine, session factory, dependency injection
-- **Giriş**: Environment değişkenleri
-- **Çıkış**: Database session'ları
-- **Satır Sayısı**: 64 satır
+- **Purpose**: Database connection management
+- **Scope**: SQLAlchemy engine, session factory, dependency injection
+- **Input**: Environment variables
+- **Output**: Database sessions
+- **Lines of Code**: 64
 
 #### 📦 `backend/requirements.txt`
-- **Amaç**: Python paket bağımlılıkları
-- **Kapsam**: 8 ana paket ve versiyonları
-- **Kategoriler**: Web framework, AI, Database, Dosya işleme
+- **Purpose**: Python package dependencies
+- **Scope**: 8 main packages with versions
+- **Categories**: Web framework, AI, Database, File processing
 
 ### 🌐 FRONTEND (React.js)
 
 #### ⚛️ `frontend/src/components/Step2.jsx`
-- **Amaç**: Rol/pozisyon yönetimi arayüzü
-- **Kapsam**: CRUD işlemleri, form validation, state yönetimi
-- **Giriş**: Contract ID, user interactions
-- **Çıkış**: Kaydedilmiş rol verileri
-- **Satır Sayısı**: 409 satır
+- **Purpose**: Role/position management interface
+- **Scope**: CRUD operations, form validation, state management
+- **Input**: Contract ID, user interactions
+- **Output**: Saved role data
+- **Lines of Code**: 409
 
-## 🔧 TEKNİK MİMARİ
+## 🔧 TECHNICAL ARCHITECTURE
 
 ### Backend Stack:
 - **Framework**: FastAPI 0.104.1
@@ -65,7 +65,7 @@ Bu dokümantasyon, sistemdeki her dosyanın amacını, kapsamını ve teknik det
 - **HTTP Client**: Axios
 - **UI**: Custom CSS + Bootstrap-like styling
 
-## 📊 VERİ AKIŞ DİYAGRAMI
+## 📊 DATA FLOW DIAGRAM
 
 ```
 👤 USER INPUT → 🌐 FRONTEND → 📡 API CALLS → 🖥️ BACKEND → 🗄️ DATABASE
@@ -75,7 +75,7 @@ Bu dokümantasyon, sistemdeki her dosyanın amacını, kapsamını ve teknik det
 📄 WORD FILES ← 📁 FILE GENERATION ← 💾 GENERATED QUESTIONS
 ```
 
-## 🚀 KURULUM VE ÇALIŞTIRMA
+## 🚀 INSTALLATION AND RUNNING
 
 ### Backend:
 ```bash
@@ -93,28 +93,31 @@ npm install
 npm run dev
 ```
 
-## 📝 DOKÜMANTASYON STANDARTları
+## 📝 DOCUMENTATION STANDARDS
 
-Her dosyada aşağıdaki bölümler bulunur:
-- 📋 **DOSYA AMACI**: Ne işe yarar?
-- 🎯 **KAPSAM**: Hangi özellikler?
-- 📊 **VERİ AKIŞI**: Girdi/çıktı nedir?
-- 🔧 **TEKNİK BİLGİLER**: Kullanılan teknolojiler
-- ⚙️ **FONKSİYONLAR**: Ana fonksiyon listesi
-- 👨‍💻 **GELIŞTIREN**: Proje bilgileri
+Each file includes the following sections:
+- 📋 **FILE PURPOSE**: What does it do?
+- 🎯 **SCOPE**: Which features?
+- 📊 **DATA FLOW**: Input/output details
+- 🔧 **TECHNICAL INFO**: Technologies used
+- ⚙️ **FUNCTIONS**: Main function list
+- 👨‍💻 **DEVELOPER**: Project information
 
-## 🔒 GÜVENLİK NOTALARI
+## 🔒 SECURITY NOTES
 
-- OpenAI API anahtarı environment değişkeninde saklanmalı
-- Production'da CORS ayarları gözden geçirilmeli
-- Database bağlantıları SSL ile korunmalı
-- File upload boyut limitleri kontrol edilmeli
+- OpenAI API key must be stored in environment variables
+- CORS settings should be reviewed in production
+- Database connections must be secured with SSL
+- File upload size limits should be enforced
 
-## 📞 DESTEK
+## 📞 SUPPORT
 
-Teknik sorularınız için dokümantasyonları inceleyiniz. Her dosyanın başında detaylı açıklamalar mevcuttur.
+For technical questions, please review the documentation. Detailed explanations are provided at the beginning of each file.
 
 ---
-👨‍💻 **Geliştiren**: AI Destekli Geliştirme  
-📅 **Tarih**: 2025  
-🔄 **Versiyon**: 1.0.0
+
+👨‍💻 **Developer**: AI-Assisted Development
+
+📅 **Date**: 08.2025
+
+🔄 **Version**: 1.0.0
