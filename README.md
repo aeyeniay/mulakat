@@ -1,20 +1,20 @@
-# Mülakat Soru Hazırlama Sistemi
+# Interview Question Preparation System
 
-## Proje Hakkında
+## About the Project
 
-Bu sistem, kamu kurumlarında sözleşmeli bilişim personeli alımı süreçlerinde kullanılmak üzere geliştirilmiş bir mülakat sorusu hazırlama uygulamasıdır. Yapay zeka teknolojisi kullanarak pozisyon, seviye ve uzmanlık alanı kriterlerine göre özelleştirilmiş mülakat soruları üretir ve Word dosyası formatında çıktı alır.
+This system is designed as an interview question preparation application to be used in public institutions during the recruitment processes of contracted IT personnel. By leveraging artificial intelligence technology, it generates customized interview questions based on position, level, and area of expertise, and exports them in Word file format.
 
-## Özellikler
+## Features
 
-- Beş aşamalı soru üretim süreci
-- Rol bazlı soru konfigürasyonu
-- Otomatik soru üretimi (OpenAI GPT-4o-mini)
-- Beklenen cevap anahtarları
-- Düzenlenebilir sorular
-- Word formatında aday ve jüri kitapçıkları
-- Zorluk seviyesi yönetimi (2x, 3x, 4x katsayıları)
+- Five-step question generation process
+- Role-based question configuration
+- Automatic question generation (OpenAI GPT-4o-mini)
+- Expected answer keys
+- Editable questions
+- Candidate and jury booklets in Word format
+- Difficulty level management (2x, 3x, 4x multipliers)
 
-## Kullanılan Teknolojiler
+## Technologies Used
 
 ### Backend
 - **Framework**: FastAPI 0.104.1
@@ -28,16 +28,16 @@ Bu sistem, kamu kurumlarında sözleşmeli bilişim personeli alımı süreçler
 - **HTTP Client**: Axios
 - **Styling**: CSS3 + Bootstrap benzeri responsive tasarım
 
-## Sistem Gereksinimleri
+## System Requirements
 
-- Python 3.8 veya üzeri
-- Node.js 16 veya üzeri
-- NPM paket yöneticisi
-- OpenAI API anahtarı
+- Python 3.8 or higher
+- Node.js 16 or higher
+- NPM package manager
+- OpenAI API key
 
-## Kurulum
+## Installation
 
-### Backend Kurulumu
+### Backend Setup
 
 ```bash
 cd backend
@@ -49,7 +49,7 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend Kurulumu
+### Frontend Setup
 
 ```bash
 cd frontend
@@ -57,9 +57,9 @@ npm install
 npm run dev
 ```
 
-## Konfigürasyon
+## Configuration
 
-OpenAI API anahtarınızı `backend/app/utils.py` dosyasında güncelleyin:
+Update your OpenAI API key in the `backend/app/utils.py` file:
 
 ```python
 client = OpenAI(
@@ -69,30 +69,30 @@ client = OpenAI(
 )
 ```
 
-## Kullanım
+## Usage
 
-### 1. İlan Bilgileri
-İlan başlığı ve genel şartları girin. Sistem otomatik olarak benzersiz bir ID oluşturur.
+### 1. Job Information
+Enter the job title and general requirements. The system automatically generates a unique ID.
 
-### 2. Rol Tanımları
-- Pozisyon adı ve açıklaması
-- Maaş katsayısı (2x, 3x, 4x)
-- Pozisyon sayısı
-- Özel gereksinimler
+### 2. Role Definitions
+- Position name and description
+- Salary multiplier (2x, 3x, 4x)
+- Number of positions
+- Special requirements
 
-### 3. Soru Konfigürasyonu
-Her rol için soru tiplerini ve sayılarını belirleyin:
-- Mesleki Deneyim Soruları
-- Teorik Bilgi Soruları
-- Pratik Uygulama Soruları
+### 3. Question Configuration
+Define question types and quantities for each role:
+- Professional Experience Questions
+- Theoretical Knowledge Questions
+- Practical Application Questions
 
-### 4. Soru Üretimi
-"Soruları Üret" butonuna tıklayarak AI destekli soru üretim sürecini başlatın. Üretilen soruları tek tek düzenleyebilirsiniz.
+### 4. Question Generation
+Click the "Generate Questions" button to start the AI-powered question generation process. You can edit the generated questions individually.
 
 ### 5. Dosya İndirme
-Her rol için ayrı ayrı Word formatında aday kitapçığı (S1, S2...) ve jüri kitapçığı (C1, C2...) indirebilirsiniz.
+Download separate Word-format booklets for candidates (S1, S2…) and jury members (C1, C2…) for each role.
 
-## Proje Yapısı
+## Project Structure
 
 ```
 mulakat_soru/
@@ -112,41 +112,38 @@ mulakat_soru/
 └── README.md
 ```
 
-## API Endpoint'leri
+## API Endpoints
 
-- `/api/step1/` - İlan yönetimi
-- `/api/step2/` - Rol yönetimi
-- `/api/step3/` - Soru konfigürasyonu
-- `/api/step4/` - Soru üretimi
-- `/api/step5/` - Word dosyası üretimi
-- `/api/system/` - Sistem bilgileri
+- `/api/step1/` - Job management
+- `/api/step2/` - Role management
+- `/api/step3/` - Question configuration
+- `/api/step4/` - Question generation
+- `/api/step5/` - Word file generation
+- `/api/system/` - System information
 
-## Veritabanı
+## Database
 
-Sistem SQLite veritabanı kullanır ve şu ana tabloları içerir:
-- contracts (ilanlar)
-- roles (roller)
-- question_types (soru tipleri)
-- role_question_configs (rol soru konfigürasyonları)
-- questions (üretilen sorular)
+The system uses an SQLite database and includes the following tables:
+- contracts
+- roles
+- question_types
+- role_question_configs
+- questions
 
-## Geliştirme
+## Development
 
-Detaylı teknik dokümantasyon için her dosyanın başında bulunan açıklamaları inceleyiniz. DOCUMENTATION.md dosyası sistem mimarisi hakkında kapsamlı bilgi içermektedir.
+For detailed technical documentation, please refer to the comments at the beginning of each file. The DOCUMENTATION.md file provides a comprehensive overview of the system architecture.
 
-## İletişim
+## Contact
 
 Ahmet Erdem Yeniay  
-Coğrafi Bilgi Sistemleri Genel Müdürlüğü  
-Yapay Zeka ve Yenilikçi Teknolojiler Daire Başkanlığı  
-Yapay Zeka Teknolojileri Şube Müdürlüğü  
-ahmeterdem.yeniay@csb.gov.tr
+aeyeniay@gmail.com
 
 ## Lisans
 
-Bu proje Coğrafi Bilgi Sistemleri Genel Müdürlüğü - Yapay Zeka ve Yenilikçi Teknolojiler Daire Başkanlığı için geliştirilmiştir.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Geliştirme Tarihi**: 2025  
-**Versiyon**: 1.0.0 
+**Development Date**: 08.2025  
+**Version**: 1.0.0 
